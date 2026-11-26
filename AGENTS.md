@@ -128,7 +128,7 @@ menus, a command bar. Where it departs from the earlier catalog page on purpose:
   `.scratch/check.log`. From WSL it runs them on Windows through `cmd.exe`; `--linux` runs them in
   the Linux build folder instead. `scripts/pre-push.sh` is the pre-push hook and says how to
   install it. `npm test` includes `scripts/docs.test.mjs`, which fails on a file name or a
-  decision record in this file, `README.md`, `CONTRIBUTING.md` or `docs/` that does not resolve, and once this file passes its size budget (`AGENTS_MD_BUDGET` there).
+  decision record in this file, `README.md`, `CONTRIBUTING.md` or `docs/` that does not resolve, and once this file passes its size budget (`AGENTS_MD_BUDGET` there); `scripts/budgets.test.mjs` caps the other docs and the source files.
 - By hand: `node scripts/dev.mjs run [data folder]` (Windows) starts the dev app with DevTools on
   9222; `scripts/smoke.mjs` fails on an error, `scripts/devtools-shot.mjs` takes a screenshot. A
   visible change is looked at in the running app.
