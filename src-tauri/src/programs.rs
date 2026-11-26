@@ -231,7 +231,8 @@ fn startable(id: &str) -> bool {
     if cfg!(windows) {
         p.is_file() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("exe"))
     } else if cfg!(target_os = "macos") {
-        p.is_dir() || p.is_file()
+        // An app is a folder named `.app`; any other folder is not a program.
+        (p.is_dir() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("app"))) || p.is_file()
     } else {
         p.is_file()
     }
