@@ -14,7 +14,7 @@ use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 
 /// Types Windows or macOS would run rather than show.
-pub const RUNS: [&str; 51] = ["exe", "bat", "cmd", "com", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "msi", "msp", "lnk", "scr", "hta", "pif", "reg", "cpl", "jar", "app", "command", "sh", "py", "pyw", "chm", "msc", "url", "appref-ms", "application", "settingcontent-ms", "library-ms", "search-ms", "iqy", "scf", "wsc", "sct", "inf", "psc1", "ps1xml", "xll", "gadget", "diagcab", "terminal", "workflow", "tool", "pkg", "desktop", "appimage", "run"];
+pub const RUNS: [&str; 70] = ["exe", "bat", "cmd", "com", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "msi", "msp", "lnk", "scr", "hta", "pif", "reg", "cpl", "jar", "app", "command", "sh", "py", "pyw", "chm", "msc", "url", "appref-ms", "application", "settingcontent-ms", "library-ms", "search-ms", "iqy", "searchconnector-ms", "rdp", "pyz", "pyzw", "theme", "themepack", "deskthemepack", "appinstaller", "msix", "msixbundle", "appx", "appxbundle", "msu", "wsb", "jnlp", "fileloc", "webloc", "inetloc", "mpkg", "scf", "wsc", "sct", "inf", "psc1", "ps1xml", "xll", "gadget", "diagcab", "terminal", "workflow", "tool", "pkg", "desktop", "appimage", "run"];
 
 /// Programs that run what they open: never offered for a type in `RUNS`, so a click on a
 /// script cannot start it by way of the Change menu.
@@ -770,6 +770,7 @@ mod tests {
         assert!(refused("exe", "C:\\Windows\\explorer.exe"));
         assert!(RUNS.contains(&"chm") && RUNS.contains(&"url") && RUNS.contains(&"desktop") && RUNS.contains(&"appimage"));
         assert!(RUNS.contains(&"library-ms") && RUNS.contains(&"search-ms") && RUNS.contains(&"iqy"));
+        assert!(["searchconnector-ms", "rdp", "pyz", "msix", "appinstaller", "wsb", "webloc"].iter().all(|e| RUNS.contains(e)));
     }
 
     /// What this PC offers for common types: `cargo test --lib programs::tests::live -- --ignored --nocapture`.
