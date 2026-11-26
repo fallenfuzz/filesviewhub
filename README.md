@@ -338,9 +338,11 @@ the kind from what is in the folder until you choose one.
 - It goes online only when you press **Search** in **Choose a cover…**: it sends the search
   words to Open Library and FantLab, fetches the small pictures of the covers they found, and
   fetches in full only the one you use. Nothing is fetched by itself. Every request is written
-  to `network.log` in the log folder. Its window is
+  to `network.log` in the log folder. On Windows its window is
   drawn by Microsoft WebView2, which the app starts with every web address blocked; WebView2
-  itself may still open one connection to Microsoft as it starts.
+  itself may still open one connection to Microsoft as it starts. On a Mac and on Linux the window
+  is WebKit, which the app cannot block the same way; which connections WebKit opens is not
+  checked yet.
 - It saves its settings, catalog, marks, the covers you chose and a log in `StoredData` next to `FilesViewHub.exe`,
   and thumbnails in the `Cache` folder inside it. **Settings**, **Storage** can move the cache
   to a `FilesViewHub Cache` folder inside one you choose, never into a folder you ticked. It

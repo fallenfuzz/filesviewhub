@@ -1,6 +1,10 @@
 // Every word the app shows, in one place, so another language is one more file.
 import type { Kind } from './api'
 
+// WebView2 draws the window on Windows only, where the app blocks its connections (WEBVIEW_ARGS in
+// lib.rs); on macOS and Linux it is WebKit, which takes none of those blocks.
+const onWindows = /Windows/.test(globalThis.navigator?.userAgent ?? '')
+
 export const KINDS: Record<Kind, { name: string; what: string; example: string[]; makes: string }> = {
   Courses: {
     name: 'Courses',
@@ -778,8 +782,9 @@ export const S = {
   fantLab: 'FantLab',
   fantLabWhat: 'api.fantlab.ru and fantlab.ru',
   networkLog: 'Every request goes into the network log first, with its time (UTC), address and reason: network.log in the log folder, shown in Settings, Log.',
-  webview:
-    'The window is drawn by Microsoft WebView2, which the app starts with every web address blocked and its background connections off. WebView2 itself may still open one connection to Microsoft as it starts; the app has no switch for that.',
+  webview: onWindows
+    ? 'The window is drawn by Microsoft WebView2, which the app starts with every web address blocked and its background connections off. WebView2 itself may still open one connection to Microsoft as it starts; the app has no switch for that.'
+    : 'The window is drawn by WebKit, the web view of macOS and Linux. The app loads nothing from the web into it, but it cannot turn off WebKit\'s own connections as it does on Windows, and which ones WebKit opens has not been checked yet.',
   logTitle: 'Log',
   logWhat:
     'The log notes when the app starts, which folders it read and how long it took, which files you opened, each file that gave no thumbnail and why, where backups were saved or added from, marks moved, covers you chose or removed, and cache moves. It stays on this PC. Settings, Log shows it.',
