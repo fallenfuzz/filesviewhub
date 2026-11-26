@@ -1,0 +1,3 @@
+# Text files keep LF on every system, so a Windows checkout holds the same bytes (the size budget of
+# AGENTS.md, the shell scripts linux.sh runs, the fixtures tests compare byte for byte).
+* text=auto eol=lf
