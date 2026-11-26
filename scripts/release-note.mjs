@@ -16,7 +16,8 @@ if (!since) {
 const added = (since
   ? git('diff', '--name-only', '--diff-filter=A', `${since}..HEAD`, '--', 'change-logs')
   : git('ls-files', 'change-logs')).split('\n').filter((f) => /^change-logs\/\d{4}\/\d{2}\/\d{2}\/[a-z]+-.+\.md$/.test(f))
-const TITLES = { feature: 'New', fix: 'Fixed', refactor: 'Changed inside', docs: 'Docs', chore: 'Other' }
+// Bold, not a Markdown heading: git drops tag-message lines that start with #.
+const TITLES = { feature: '**New**', fix: '**Fixed**', refactor: '**Changed inside**', docs: '**Docs**', chore: '**Other**' }
 const groups = new Map(Object.keys(TITLES).map((t) => [t, []]))
 for (const f of added.sort()) {
   const type = f.split('/').pop().split('-')[0]

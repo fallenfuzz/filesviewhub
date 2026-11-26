@@ -26,7 +26,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --verify-tag --notes-from-tag --title "$TAG" --draft
+        # The title reads "FilesViewHub 0.0.9 (build 509)" for the tag filesviewhub-0.0.9-build-509.
+        run: |
+          v=${TAG#filesviewhub-}
+          gh release create "$TAG" --verify-tag --notes-from-tag --title "FilesViewHub ${v%-build-*} (build ${v##*-build-})" --draft
   package:
     needs: release
     # Run by hand there is no release job, and the packages are still made.
