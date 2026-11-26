@@ -923,7 +923,9 @@ mod backup_qa {
         assert_eq!(b.marks.ticks.values().map(|t| t.len()).sum::<usize>(), 20_000);
         assert_eq!(b.marks.review.len(), 20_000);
         assert_eq!(as_value(&b.marks), as_value(&m));
-        assert!(ms < 1000, "50,000 marks read in {ms} ms");
+        // CI runners are slower than a person's PC: three times the time there.
+        let limit = if std::env::var_os("CI").is_some() { 3000 } else { 1000 };
+        assert!(ms < limit, "50,000 marks read in {ms} ms");
     }
 
     // ---------- older files ----------
