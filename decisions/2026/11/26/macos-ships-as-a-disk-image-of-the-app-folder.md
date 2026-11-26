@@ -14,9 +14,10 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
   Applications would put `StoredData` loose in `/Applications`.
 - A Mac starts an app from a disk image, or one not moved out of Downloads, from a read-only
   place, so the app cannot write `StoredData` there.
-- FFmpeg built from the pinned commit with only its own decoders and macOS's zlib and bzip2
-  is LGPL 2.1 or later with nothing else inside. It decodes every format the other builds
-  do except AV1, which needs dav1d. It takes about 10 minutes on a CI runner.
+- FFmpeg built from the pinned commit with its own decoders, dav1d for AV1 and macOS's zlib and
+  bzip2 is LGPL 2.1 or later as a whole, and decodes what the other builds do. dav1d builds with
+  meson, ninja and pkgconf, each also built from a pinned source. It takes about 10 minutes on
+  a CI runner.
 - `ddjvu -format=pnm` needs no TIFF. It needs JPEG only for the JPEG pictures some DjVu pages
   hold, and the IJG's libjpeg builds with configure and make, as DjVuLibre does.
 - bblanchon's PDFium has a build for each Mac type.
@@ -28,7 +29,7 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
   its tools and notices inside the app (`Contents/Resources/tools`), and `README.md`,
   `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt` next to it. The person drags the folder out, and
   `StoredData` goes into it, next to the app.
-- `scripts/fetch-tools.mjs` builds FFmpeg (at `FFMPEG_COMMIT`) and ddjvu (DjVuLibre 3.5.30, with
+- `scripts/fetch-tools.mjs` builds FFmpeg (at `FFMPEG_COMMIT`, with dav1d) and ddjvu (DjVuLibre 3.5.30, with
   libjpeg 10 built in) from source on the Mac and fetches PDFium. DjVuLibre's and libjpeg's exact
   source ships in the app.
 - The app needs macOS 13 or later (CSS subgrid in WKWebView).
@@ -39,7 +40,6 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
 
 - Gatekeeper may still start the app from a read-only copy after the folder is dragged out. The
   app then says it cannot write and names the folder, and the README gives the `xattr` command.
-- No AV1 thumbnails on a Mac.
 - Signing with hardened runtime later needs PDFium signed with the same Developer ID, or the
   library-validation entitlement.
 

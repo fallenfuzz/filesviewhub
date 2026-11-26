@@ -53,7 +53,7 @@ const item = (t) => ({ name: t.name, version: t.version, licence: t.licence, sou
   texts: (t.licences ?? []).map(f => ({ file: f, text: keep(read(join(TOOLS, f))) })) })
 const tools = bundled.map(item)
 // The MSYS2 packages whose DLLs ddjvu loads, each a part of its own.
-const msys2 = bundled.flatMap(t => t.packages ?? []).map(item)
+const msys2 = bundled.filter(t => t.id !== 'ffmpeg').flatMap(t => t.packages ?? []).map(item)
 for (const p of [...tools, ...msys2]) if (!p.texts.length) throw new Error(`${p.name} has no licence file in tools.json`)
 // The app's own source, which the AppImage carries since a GPL 2 library (libjbig) is loaded into
 // the app there; package.mjs puts it in tools/source/ before the first notices of a build.
@@ -75,7 +75,8 @@ const at = (repo, rev) => {
     : /git\.savannah\.gnu\.org\/git\//.test(r) ? `${r.replace('/git/', '/cgit/')}.git/tree/?id=${rev}`
     : /git\.code\.sf\.net\/p\//.test(r) ? `${r.replace('git.code.sf.net/p/', 'sourceforge.net/p/')}/ci/${rev}/tree/` : r
 }
-const inFfmpeg = parts.parts.filter(p => p.systems.includes(system)).map(p => {
+// On macOS FFmpeg's libraries are the packages its tools.json entry lists (dav1d), built by fetch-tools.
+const inFfmpeg = system === 'macos' ? (bundled.find(t => t.id === 'ffmpeg')?.packages ?? []).map(item) : parts.parts.filter(p => p.systems.includes(system)).map(p => {
   for (const [f, id] of Object.entries(p.files)) if (keep(parts.texts[id]) !== id) throw new Error(`${p.name}: ${f} in ffmpeg-licences.json is not the text it names`)
   if (!Object.keys(p.files).length) throw new Error(`${p.name} has no licence file in ffmpeg-licences.json`)
   return { name: p.name, version: p.rev, licence: guess(Object.values(p.files)),

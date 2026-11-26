@@ -131,8 +131,7 @@ const FFMPEG_LIBS = ['libavcodec.so.63', 'libavdevice.so.63', 'libavfilter.so.12
   'libswresample.so.7', 'libswscale.so.10']
 
 // macOS: no FFmpeg build to fetch matches the others, so FFmpeg is built from the pinned commit with
-// only its own decoders and the system's zlib and bzip2: LGPL 2.1 or later, nothing else
-// inside. DjVuLibre's ddjvu is built from its release with the IJG's libjpeg built into it, for the
+// its own decoders, dav1d for AV1 and the system's zlib and bzip2: LGPL 2.1 or later as a whole. DjVuLibre's ddjvu is built from its release with the IJG's libjpeg built into it, for the
 // DjVu pages whose pictures are JPEG, and without TIFF, which writing PNM does not need.
 const MAC = {
   ffmpeg: { url: `https://github.com/FFmpeg/FFmpeg/archive/${FFMPEG_COMMIT}.tar.gz`, file: `ffmpeg-${FFMPEG_COMMIT}.tar.gz`,
@@ -140,6 +139,16 @@ const MAC = {
   // The same file as the one inside MSYS2's source package the Windows ddjvu is built from.
   djvulibre: { url: 'https://downloads.sourceforge.net/project/djvu/DjVuLibre/3.5.30/djvulibre-3.5.30.tar.gz', file: 'djvulibre-3.5.30.tar.gz',
     sha256: 'ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644' },
+  // dav1d, the AV1 decoder built into FFmpeg, and what builds it: meson, ninja and pkgconf (FFmpeg's
+  // configure finds dav1d with pkg-config). Each pin is the one Homebrew's formula checks.
+  dav1d: { url: 'https://code.videolan.org/videolan/dav1d/-/archive/1.5.5/dav1d-1.5.5.tar.bz2', file: 'dav1d-1.5.5.tar.bz2',
+    sha256: 'afc5378daba30eafd11d7b4f0ec863270d7b175f38393a2e1e0ff76f3a45c8b9' },
+  meson: { url: 'https://github.com/mesonbuild/meson/releases/download/1.12.1/meson-1.12.1.tar.gz', file: 'meson-1.12.1.tar.gz',
+    sha256: 'ab0a6ca09f8ef70c564c8241fb5a23957886a0b53fb58412b5e07eaf07dba743' },
+  ninja: { url: 'https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz', file: 'ninja-1.13.2.tar.gz',
+    sha256: '974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17' },
+  pkgconf: { url: 'https://distfiles.ariadne.space/pkgconf/pkgconf-3.0.11.tar.xz', file: 'pkgconf-3.0.11.tar.xz',
+    sha256: 'd0cd841bc8e55b9da888106c00dc256d05b7d1d8e5a46f4be4eb4c5125bd2dc4' },
   // The Independent JPEG Group's libjpeg, built into ddjvu.
   jpeg: { url: 'https://www.ijg.org/files/jpegsrc.v10.tar.gz', file: 'jpegsrc.v10.tar.gz',
     sha256: '8b9eaa13242690ebd03e1728ab1edf97a81a78ed6e83624d493655f31ac95ab5' },
@@ -224,33 +233,57 @@ if (process.platform === 'linux') {
 
 if (process.platform === 'darwin') {
   const arch = process.arch
-  // FFmpeg, built once per pin, configure options and Mac type; a build takes about 10 minutes.
-  const configure = arch === 'x64' ? [...FFMPEG_CONFIGURE, '--x86asmexe=<nasm 3.02, built from its pinned source>'] : FFMPEG_CONFIGURE
-  const recipe = createHash('sha256').update(JSON.stringify([FFMPEG_COMMIT, configure, arch === 'x64' ? MAC.nasm.sha256 : ''])).digest('hex').slice(0, 12)
+  const macEnv = { CFLAGS: macFlags, CXXFLAGS: macFlags, LDFLAGS: `-mmacosx-version-min=${MIN_MACOS}` }
+  // FFmpeg, built once per pin, configure options and Mac type; a build takes about 10 minutes. dav1d
+  // (AV1) is built into it, with ninja, meson and pkgconf built first, and on an Intel Mac nasm;
+  // those four only build, and none ships.
+  const configure = [...FFMPEG_CONFIGURE, '--enable-libdav1d', '--pkg-config=<pkgconf 3.0.11, built from its pinned source>', '--pkg-config-flags=--static',
+    ...(arch === 'x64' ? ['--x86asmexe=<nasm 3.02, built from its pinned source>'] : [])]
+  const recipe = createHash('sha256').update(JSON.stringify([FFMPEG_COMMIT, configure, ...['dav1d', 'meson', 'ninja', 'pkgconf', ...(arch === 'x64' ? ['nasm'] : [])].map(k => MAC[k].sha256)]))
+    .digest('hex').slice(0, 12)
   const built = join(CACHE, `ffmpeg-built-${recipe}-${arch}`)
   if (!existsSync(join(built, 'ffprobe'))) {
     rmSync(built, { recursive: true, force: true })
-    let asm = []
+    const bin = resolve(WORK, 'bin'), deps = resolve(WORK, 'deps')
+    mkdirSync(bin, { recursive: true })
+    const env = { PATH: `${bin}:${process.env.PATH}`, ...macEnv }
     if (arch === 'x64') {
       unpack(await get(MAC.nasm), join(WORK, 'nasm'))
       const n = join(WORK, 'nasm', 'nasm-3.02')
       run('./configure', [], n)
       run('make', [`-j${jobs}`, 'nasm'], n)
-      asm = [`--x86asmexe=${resolve(n, 'nasm')}`]
+      copyFileSync(join(n, 'nasm'), join(bin, 'nasm'))
+      chmodSync(join(bin, 'nasm'), 0o755)
+    }
+    unpack(await get(MAC.ninja), join(WORK, 'ninja'))
+    const nj = join(WORK, 'ninja', 'ninja-1.13.2')
+    run('python3', ['configure.py', '--bootstrap'], nj)
+    copyFileSync(join(nj, 'ninja'), join(bin, 'ninja'))
+    chmodSync(join(bin, 'ninja'), 0o755)
+    unpack(await get(MAC.meson), join(WORK, 'meson'))
+    const meson = (args, cwd) => run('python3', [resolve(WORK, 'meson', 'meson-1.12.1', 'meson.py'), ...args], cwd, env)
+    for (const [k, dir, opts] of [['pkgconf', 'pkgconf-3.0.11', []], ['dav1d', 'dav1d-1.5.5', ['-Denable_tools=false', '-Denable_tests=false']]]) {
+      unpack(await get(MAC[k]), join(WORK, k))
+      meson(['setup', 'build', `--prefix=${join(deps, k)}`, '--libdir=lib', '--default-library=static', '--buildtype=release', ...opts], join(WORK, k, dir))
+      run(join(bin, 'ninja'), ['-C', 'build', 'install'], join(WORK, k, dir), env)
     }
     unpack(await get(MAC.ffmpeg), join(WORK, 'ffmpeg'))
     const src = join(WORK, 'ffmpeg', `FFmpeg-${FFMPEG_COMMIT}`)
-    run('./configure', [...FFMPEG_CONFIGURE, ...asm], src)
+    run('./configure', [...FFMPEG_CONFIGURE, '--enable-libdav1d', `--pkg-config=${join(deps, 'pkgconf', 'bin', 'pkgconf')}`, '--pkg-config-flags=--static',
+      ...(arch === 'x64' ? [`--x86asmexe=${join(bin, 'nasm')}`] : [])], src, { PATH: env.PATH, PKG_CONFIG_PATH: join(deps, 'dav1d', 'lib', 'pkgconfig') })
     run('make', [`-j${jobs}`, 'ffmpeg', 'ffprobe'], src)
     mkdirSync(built, { recursive: true })
     for (const f of ['LICENSE.md', 'COPYING.LGPLv2.1']) copyFileSync(join(src, f), join(built, f))
     for (const f of ['ffmpeg', 'ffprobe']) copyFileSync(join(src, f), join(built, f))
+    copyFileSync(join(WORK, 'dav1d', 'dav1d-1.5.5', 'COPYING'), join(built, 'dav1d-COPYING.txt'))
   }
-  copy(built, ['ffmpeg', 'ffprobe', 'LICENSE.md', 'COPYING.LGPLv2.1'], join(TOOLS, 'ffmpeg'))
+  copy(built, ['ffmpeg', 'ffprobe', 'LICENSE.md', 'COPYING.LGPLv2.1', 'dav1d-COPYING.txt'], join(TOOLS, 'ffmpeg'))
   for (const f of ['ffmpeg', 'ffprobe']) chmodSync(join(TOOLS, 'ffmpeg', f), 0o755)
   writeFileSync(join(TOOLS, 'ffmpeg', 'BUILD.txt'), `ffmpeg and ffprobe are built by FilesViewHub's tools script (scripts/fetch-tools.mjs) from
 FFmpeg's source at commit ${FFMPEG_COMMIT}
-(${MAC.ffmpeg.url}), unchanged, for a ${arch} Mac, with:
+(${MAC.ffmpeg.url}), unchanged, for a ${arch} Mac, with dav1d ${'1.5.5'} (${MAC.dav1d.url}),
+unchanged, built into them as a static library with meson (--default-library=static
+--buildtype=release -Denable_tools=false -Denable_tests=false), and:
 
 ./configure ${configure.join(' ')}
 make ffmpeg ffprobe
@@ -258,7 +291,6 @@ make ffmpeg ffprobe
 Nothing else is built into them; they use macOS's own zlib and bzip2.
 `)
 
-  const macEnv = { CFLAGS: macFlags, CXXFLAGS: macFlags, LDFLAGS: `-mmacosx-version-min=${MIN_MACOS}` }
   unpack(await get(MAC.jpeg), join(WORK, 'jpeg'))
   const jp = join(WORK, 'jpeg', 'jpeg-10'), jpegOut = resolve(WORK, 'jpeg-out')
   run('./configure', [...JPEG_CONFIGURE, `--prefix=${jpegOut}`], jp, macEnv)
@@ -301,7 +333,9 @@ make -C tools ddjvu
       { id: 'ffmpeg', name: 'FFmpeg', version: '9.0.2', licence: 'LGPL 2.1 or later', files: ['ffmpeg/ffmpeg', 'ffmpeg/ffprobe'],
         ships: ['ffmpeg/ffmpeg', 'ffmpeg/ffprobe'], source: `https://github.com/FFmpeg/FFmpeg/tree/${FFMPEG_COMMIT}`, licences: ['ffmpeg/LICENSE.md', 'ffmpeg/COPYING.LGPLv2.1'],
         sources: [{ what: 'FFmpeg source at the commit this build is made from', url: `https://github.com/FFmpeg/FFmpeg/tree/${FFMPEG_COMMIT}` },
-          { what: 'How it is built', url: 'ffmpeg/BUILD.txt' }] },
+          { what: 'How it is built', url: 'ffmpeg/BUILD.txt' }],
+        packages: [{ name: 'dav1d', version: '1.5.5', licence: 'BSD 2-Clause', files: [], licences: ['ffmpeg/dav1d-COPYING.txt'],
+          sources: [{ what: 'Source', url: MAC.dav1d.url }] }] },
       { id: 'pdfium', name: 'PDFium', version: `chromium/${build}`, licence: 'BSD 3-Clause and Apache 2.0', files: ['pdfium/libpdfium.dylib'],
         ships: ['pdfium/libpdfium.dylib'], source: PDFIUM_RELEASE, sources: PDFIUM_SOURCES, licences: pdfiumFiles },
       { id: 'ddjvu', name: 'DjVuLibre ddjvu', version: '3.5.30', licence: 'GPL 2.0 or later', files: ['djvulibre/ddjvu'], ships: ['djvulibre/ddjvu'],
