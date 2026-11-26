@@ -2,15 +2,16 @@
 // the app reads for its "What this app does" screen. Every download is pinned by SHA-256.
 // Run from the repo root: `npm run fetch-tools`. Windows and Linux (x86_64), and macOS (arm64 or x64, the
 // Mac's own). On Linux ffmpeg and PDFium are bundled and ddjvu is the system's (Arch: djvulibre); it needs
-// patchelf. On macOS FFmpeg and ddjvu are built here from their pinned source (Xcode's command line tools;
-// on an Intel Mac also nasm), FFmpeg once per pin and Mac type, kept in tools/.download.
+// patchelf. On macOS FFmpeg and ddjvu are built here from their pinned source with Xcode's command line
+// tools (on an Intel Mac nasm too, also built from source), FFmpeg once per pin and Mac type, kept in
+// tools/.download.
 //
 // A pinned URL can disappear (BtbN keeps dated ffmpeg builds for a few weeks, MSYS2 prunes old
 // packages). The script then stops; pick the newer file, put its URL and hash here, and run again.
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 
 if (!['win32', 'linux', 'darwin'].includes(process.platform)) { console.error('The tools are fetched on Windows, Linux and macOS.'); process.exit(1) }
 if (process.platform === 'darwin' && !['arm64', 'x64'].includes(process.arch)) { console.error(`No tools for a ${process.arch} Mac.`); process.exit(1) }
@@ -139,6 +140,9 @@ const MAC = {
   // The same file as the one inside MSYS2's source package the Windows ddjvu is built from.
   djvulibre: { url: 'https://downloads.sourceforge.net/project/djvu/DjVuLibre/3.5.30/djvulibre-3.5.30.tar.gz', file: 'djvulibre-3.5.30.tar.gz',
     sha256: 'ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644' },
+  // The assembler FFmpeg's x86 code needs on an Intel Mac; only used to build, never shipped.
+  nasm: { url: 'https://www.nasm.us/pub/nasm/releasebuilds/3.02/nasm-3.02.tar.xz', file: 'nasm-3.02.tar.xz',
+    sha256: '87336eba53b4acfe917424ab5d500d2b0054d9f5148d35c2273ccf2cfb712f0d' },
   pdfium: {
     arm64: { url: 'https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8165/pdfium-mac-arm64.tgz', file: 'pdfium-mac-arm64.tgz',
       sha256: '112e74d717f3e0310273b70f3c8780e8a61ff11b34834124465c8305c841d350' },
@@ -216,15 +220,23 @@ if (process.platform === 'linux') {
 
 if (process.platform === 'darwin') {
   const arch = process.arch
-  if (arch === 'x64') try { execFileSync('nasm', ['-v']) } catch { console.error('FFmpeg needs nasm on an Intel Mac: brew install nasm'); process.exit(1) }
   // FFmpeg, built once per pin, configure options and Mac type; a build takes about 10 minutes.
-  const recipe = createHash('sha256').update(JSON.stringify([FFMPEG_COMMIT, FFMPEG_CONFIGURE])).digest('hex').slice(0, 12)
+  const configure = arch === 'x64' ? [...FFMPEG_CONFIGURE, '--x86asmexe=<nasm 3.02, built from its pinned source>'] : FFMPEG_CONFIGURE
+  const recipe = createHash('sha256').update(JSON.stringify([FFMPEG_COMMIT, configure, arch === 'x64' ? MAC.nasm.sha256 : ''])).digest('hex').slice(0, 12)
   const built = join(CACHE, `ffmpeg-built-${recipe}-${arch}`)
   if (!existsSync(join(built, 'ffprobe'))) {
     rmSync(built, { recursive: true, force: true })
+    let asm = []
+    if (arch === 'x64') {
+      unpack(await get(MAC.nasm), join(WORK, 'nasm'))
+      const n = join(WORK, 'nasm', 'nasm-3.02')
+      run('./configure', [], n)
+      run('make', [`-j${jobs}`, 'nasm'], n)
+      asm = [`--x86asmexe=${resolve(n, 'nasm')}`]
+    }
     unpack(await get(MAC.ffmpeg), join(WORK, 'ffmpeg'))
     const src = join(WORK, 'ffmpeg', `FFmpeg-${FFMPEG_COMMIT}`)
-    run('./configure', FFMPEG_CONFIGURE, src)
+    run('./configure', [...FFMPEG_CONFIGURE, ...asm], src)
     run('make', [`-j${jobs}`, 'ffmpeg', 'ffprobe'], src)
     mkdirSync(built, { recursive: true })
     for (const f of ['LICENSE.md', 'COPYING.LGPLv2.1']) copyFileSync(join(src, f), join(built, f))
@@ -236,7 +248,7 @@ if (process.platform === 'darwin') {
 FFmpeg's source at commit ${FFMPEG_COMMIT}
 (${MAC.ffmpeg.url}), unchanged, for a ${arch} Mac, with:
 
-./configure ${FFMPEG_CONFIGURE.join(' ')}
+./configure ${configure.join(' ')}
 make ffmpeg ffprobe
 
 Nothing else is built into them; they use macOS's own zlib and bzip2.

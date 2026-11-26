@@ -55,9 +55,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils djvulibre-bin
-      - name: nasm, which FFmpeg's build needs on an Intel Mac
-        if: runner.os == 'macOS' && runner.arch == 'X64'
-        run: brew install nasm
       - run: npm ci --no-audit --no-fund
       - run: npm run fetch-tools
       - run: node scripts/check.mjs

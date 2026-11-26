@@ -218,7 +218,7 @@ use are in `docs/glossary.md`; agent skills that keep a glossary and records poi
 ## Environment
 
 - Windows: Rust stable MSVC (rustup), Visual Studio Build Tools (C++ workload), Node 24.
-- macOS 13 or later: Xcode's command line tools, rustup stable, Node 24; Intel also `nasm`.
+- macOS 13 or later: Xcode's command line tools, rustup stable, Node 24.
 - Linux (Ubuntu 24.04, also under WSL): rustup stable, Node 24, the apt packages
   `libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev
   libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils djvulibre-bin webkit2gtk-driver`,
