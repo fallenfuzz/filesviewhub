@@ -47,10 +47,13 @@ Linux ships as an AppImage.
   inside (ddjvu is the system's), from the same source plus `src-tauri/tauri.linux.conf.json`;
   `npm run package` on Linux. It carries the app's own source at the built commit, as a GPL 2
   library it loads asks (`decisions/2026/10/20/licences-and-notices-made-for-each-package.md`).
-- Both are build artifacts; `release/` keeps the newest, older ones go to `release/archive/`.
+- macOS: `release/FilesViewHub-<version>-build-<n>-macos-<arm64|x64>.dmg`
+  (`decisions/2026/11/26/macos-ships-as-a-disk-image-of-the-app-folder.md`); `npm run package` on
+  that Mac type after `npm run fetch-tools`; bundle config `src-tauri/macos-package.conf.json`.
+- All are build artifacts; `release/` keeps the newest, older ones go to `release/archive/`.
 - CI: `.github/workflows/check.yml` runs the gate on Windows, Linux and macOS (macOS may fail
-  for now). A pushed `filesviewhub-*` tag makes a draft release of both packages, notes from the
-  tag (`.github/workflows/release.yml`).
+  for now). A pushed `filesviewhub-*` tag makes a draft release of every package, notes from the
+  tag (`.github/workflows/release.yml`); `gh workflow run release.yml` makes them as artifacts only.
 - From WSL, `bash scripts/release.sh` makes both (`windows` or `linux` for one): it stops on
   uncommitted changes, runs `scripts/check.mjs`, then packages on Windows through `cmd.exe` and on
   Linux through `scripts/linux.sh`.
@@ -216,6 +219,7 @@ use are in `docs/glossary.md`; agent skills that keep a glossary and records poi
 ## Environment
 
 - Windows: Rust stable MSVC (rustup), Visual Studio Build Tools (C++ workload), Node 24.
+- macOS 13 or later: Xcode's command line tools, rustup stable, Node 24; Intel also `nasm`.
 - Linux (Ubuntu 24.04, also under WSL): rustup stable, Node 24, the apt packages
   `libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev
   libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils djvulibre-bin webkit2gtk-driver`,

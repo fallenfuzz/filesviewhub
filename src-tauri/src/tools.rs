@@ -48,7 +48,7 @@ pub struct Tools {
 }
 
 impl Tools {
-    /// `tools` next to the app (inside the AppImage on Linux); in a development build, `tools/` as the fetch script leaves it.
+    /// `tools` next to the app (inside the AppImage on Linux, the `.app` on macOS); in a development build, `tools/` as the fetch script leaves it.
     pub fn find() -> Tools {
         let mut places = vec![];
         if let Some(d) = std::env::current_exe().ok().and_then(|e| e.parent().map(Path::to_path_buf)) {
@@ -56,6 +56,9 @@ impl Tools {
             // In the Linux AppImage the app is `usr/bin/filesviewhub` and its resources are in `usr/lib`.
             #[cfg(target_os = "linux")]
             places.push(d.join("../lib/FilesViewHub/tools"));
+            // In the macOS app it is `Contents/MacOS/filesviewhub` and its resources are in `Contents/Resources`.
+            #[cfg(target_os = "macos")]
+            places.push(d.join("../Resources/tools"));
         }
         if cfg!(debug_assertions) {
             places.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tools"));

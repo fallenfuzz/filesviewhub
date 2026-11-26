@@ -1,0 +1,20 @@
+{
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "resources": {
+      "../tools/tools.json": "tools/tools.json",
+      "../tools/notices.json": "tools/notices.json",
+      "../tools/THIRD-PARTY-NOTICES.txt": "tools/THIRD-PARTY-NOTICES.txt",
+      "../LICENSE": "LICENSE.txt",
+      "../tools/ffmpeg/": "tools/ffmpeg/",
+      "../tools/pdfium/": "tools/pdfium/",
+      "../tools/djvulibre/": "tools/djvulibre/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    }
+  }
+}

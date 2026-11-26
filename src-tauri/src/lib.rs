@@ -2193,11 +2193,14 @@ pub fn run() {
                 log::error!("cannot write the data folder: {e}");
                 logs::EARLY.release();
                 let handle = app.handle().clone();
+                // A Mac starts an app from a disk image, or one not yet moved out of Downloads, from a
+                // read-only place.
+                let place = if cfg!(target_os = "macos") { "for example Applications or Documents, with Finder" } else { "for example Downloads" };
                 app.dialog()
                     .message(format!(
                         "FilesViewHub keeps its settings and marks in the StoredData folder next to it, \
                          and cannot write there:\n\n{e}\n\nMove the FilesViewHub folder to a place you can \
-                         write, for example Downloads, and start it again."
+                         write, {place}, and start it again."
                     ))
                     .title("FilesViewHub cannot save")
                     .show(move |_| handle.exit(1));

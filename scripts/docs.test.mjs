@@ -78,7 +78,8 @@ test('decision records are dated, their slugs unique, and every cited one is the
 
 // AGENTS.md is loaded on every turn and by every subagent, so its size is paid on each request.
 // A ratchet: lowering it is welcome; raising it is a choice, made here with its reason.
-const AGENTS_MD_BUDGET = 17_000;
+// 17 500: the macOS package and its build environment, a third system to ship.
+const AGENTS_MD_BUDGET = 17_500;
 
 test('AGENTS.md stays within its size budget', () => {
   const size = Buffer.byteLength(readFileSync(join(repo, 'AGENTS.md'), 'utf8'));

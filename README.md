@@ -4,7 +4,7 @@ FilesViewHub shows the folders you choose as a catalog of cards: courses, books,
 activity packs and anything else, with thumbnails, search, and Next and Done marks. It reads your
 folders and never changes or deletes anything in them. It moves files in one case only: photos you
 set aside in Review, when you press **Move**, and **Undo** puts them back. It is an early test
-version for Windows 10 and 11, with a first try-out version for Linux.
+version for Windows 10 and 11, with first try-out versions for Linux and for macOS 13 or later.
 
 ![FilesViewHub showing a Section of cooking videos and recipes as cards with thumbnails](README-files/main.jpg)
 
@@ -45,10 +45,30 @@ Not there yet on Linux:
 - **Settings**, **Programs** has no list of programs. Each file opens in the program your
   system uses for its type.
 
+### On a Mac
+
+There are two disk images: `FilesViewHub-<version>-build-<n>-macos-arm64.dmg` for a Mac with
+Apple silicon (M1 and later) and `...-macos-x64.dmg` for an Intel Mac. They need macOS 13 or later.
+
+1. Open the disk image and drag the `FilesViewHub` folder into **Applications** or **Documents**.
+   The app keeps its `StoredData` folder next to `FilesViewHub.app`, inside that folder, so it
+   cannot start from the disk image itself.
+2. Double-click `FilesViewHub.app` in the folder you dragged.
+3. The app is not signed yet, so macOS says it cannot check it. Click **Done**, open **System
+   Settings**, **Privacy & Security**, and click **Open Anyway** at the bottom (on macOS 13 and 14:
+   right-click the app, **Open**). macOS asks only the first time.
+4. If the app then says it cannot write its StoredData folder, macOS is still running it from a
+   read-only copy. Run this once in Terminal, then start it again:
+   `xattr -dr com.apple.quarantine /Applications/FilesViewHub` (or the folder you chose).
+
+Not there yet on a Mac:
+
+- **Settings**, **Programs** shows a letter for each program instead of its icon.
+
 ### Update, back up, remove
 
 - To update, unzip the new version over the old folder, or replace `FilesViewHub.exe` and the
-  `tools` folder. Do not delete the old folder first: `StoredData` holds your marks.
+  `tools` folder. On a Mac, replace `FilesViewHub.app`. Do not delete the old folder first: `StoredData` holds your marks.
 - To back up your marks and settings, copy `StoredData`, or save a backup in **Settings**,
   **Marks** (see [Marks and backups](#marks-and-backups)).
 - To remove the app and everything it saved, delete its folder.
@@ -358,7 +378,8 @@ License, version 3 or later (`LICENSE.txt`). It comes with no warranty.
 
 The programs in the `tools` folder and the parts built into the app each have their own licence.
 **Settings**, **Licences** lists every one with its version, its licence texts and where its
-source is. `THIRD-PARTY-NOTICES.txt` holds the same list: in the app folder on Windows, inside
-the AppImage on Linux. DjVuLibre and jbigkit are under the GPL, so on Windows their exact
-source is in `tools/djvulibre/source`. The Linux AppImage carries FilesViewHub's own source,
+source is. `THIRD-PARTY-NOTICES.txt` holds the same list: in the app folder on Windows and on a
+Mac, inside the AppImage on Linux. DjVuLibre and jbigkit are under the GPL, so on Windows their
+exact source is in `tools/djvulibre/source`; on a Mac DjVuLibre's is in
+`FilesViewHub.app/Contents/Resources/tools/djvulibre/source`. The Linux AppImage carries FilesViewHub's own source,
 since a library under the GPL is loaded into the app there.

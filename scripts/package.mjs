@@ -1,13 +1,15 @@
 // Builds the portable zip (`decisions/2026/10/05/filesviewhub-is-a-tauri-app-shipped-portable.md`): the .exe, its tools folder, the README for people, the app's
 // licence and the third-party notices, named with the version and build number. Run from
 // the repo root: `npm run package`. On Linux it makes one AppImage instead, its tools and notices inside
-// (`src-tauri/tauri.linux.conf.json`). macOS comes next.
+// (`src-tauri/tauri.linux.conf.json`). On macOS it makes a disk image holding a FilesViewHub folder:
+// the .app, its tools and notices inside (`src-tauri/macos-package.conf.json`), and the README, the
+// licence and the notices next to it, for the Mac it runs on (arm64 or x64).
 // A release runs it through scripts/release.sh from WSL, which first refuses uncommitted changes and runs check.mjs.
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { chmodSync, cpSync, existsSync, mkdirSync, copyFileSync, readdirSync, rmSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-if (!['win32', 'linux'].includes(process.platform)) { console.error('Packaging runs on Windows and Linux for now.'); process.exit(1) }
+if (!['win32', 'linux', 'darwin'].includes(process.platform)) { console.error('Packaging runs on Windows, Linux and macOS.'); process.exit(1) }
 // The app's folder in a git checkout. The Linux build folder has no .git; scripts/linux.sh names it in FVH_APP.
 const repo = process.env.FVH_APP ?? '.'
 const git = (args) => execSync(`git -C "${repo}" ${args}`).toString().trim()
@@ -56,6 +58,37 @@ if (process.platform === 'linux') {
   copyFileSync(join(made, image), out)
   chmodSync(out, 0o755)
   console.log(`\n${out}`)
+  process.exit(0)
+}
+if (process.platform === 'darwin') {
+  rmSync('tools/source', { recursive: true, force: true })
+  execSync('node scripts/notices.mjs', { stdio: 'inherit' })
+  // Ad-hoc signed only, until the Developer ID (issue #3).
+  execSync('npx tauri build --bundles app --config src-tauri/macos-package.conf.json', { stdio: 'inherit' })
+  const version = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')).version
+  const app = join(process.env.CARGO_TARGET_DIR ?? 'src-tauri/target', 'release', 'bundle', 'macos', 'FilesViewHub.app')
+  if (!existsSync(app)) { console.error(`No app in ${app}.`); process.exit(1) }
+  const name = `FilesViewHub-${version}-build-${buildNumber()}-macos-${process.arch}`
+  const stage = join('release', name)
+  const dir = join(stage, 'FilesViewHub')
+  rmSync(stage, { recursive: true, force: true })
+  mkdirSync(dir, { recursive: true })
+  // ditto keeps the bundle's links, modes and signature as they are.
+  execFileSync('ditto', [app, join(dir, 'FilesViewHub.app')])
+  execFileSync('codesign', ['--verify', '--deep', '--strict', join(dir, 'FilesViewHub.app')], { stdio: 'inherit' })
+  copyFileSync('README.md', join(dir, 'README.md'))
+  cpSync('README-files', join(dir, 'README-files'), { recursive: true })
+  copyFileSync('LICENSE', join(dir, 'LICENSE.txt'))
+  copyFileSync('tools/THIRD-PARTY-NOTICES.txt', join(dir, 'THIRD-PARTY-NOTICES.txt'))
+  const dmg = join('release', `${name}.dmg`)
+  rmSync(dmg, { force: true })
+  // hdiutil on a busy runner can fail with "Resource busy"; it is tried three times.
+  for (let i = 1; ; i++) {
+    try { execFileSync('hdiutil', ['create', '-volname', 'FilesViewHub', '-srcfolder', stage, '-ov', '-format', 'UDZO', dmg], { stdio: 'inherit' }); break }
+    catch (e) { if (i === 3) throw e; console.log('hdiutil failed; trying again.'); execFileSync('sleep', ['5']) }
+  }
+  rmSync(stage, { recursive: true, force: true })
+  console.log(`\n${dmg}`)
   process.exit(0)
 }
 // The app's own source ships only in the AppImage (`decisions/2026/10/20/licences-and-notices-made-for-each-package.md`).
