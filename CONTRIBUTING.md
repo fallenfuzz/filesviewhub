@@ -18,8 +18,9 @@ node scripts/check.mjs # the gate: UI tests, type check, Rust tests, clippy
 ```
 
 On macOS, skip `npm run fetch-tools`: the tools are not fetched there yet, and the gate runs
-without them. From WSL, `node scripts/check.mjs` runs the gate on Windows through `cmd.exe`, and
-`--linux` runs it in a Linux build folder (`scripts/linux.sh`).
+without them. From WSL, `node scripts/check.mjs` runs the gate in WSL, `--windows` runs it on Windows
+through `cmd.exe` (the default when Windows npm installed `node_modules`), and `--linux` runs it in
+a Linux build folder (`scripts/linux.sh`).
 
 ## Before opening a pull request
 

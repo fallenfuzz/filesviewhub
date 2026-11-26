@@ -124,9 +124,9 @@ menus, a command bar. Where it departs from the earlier catalog page on purpose:
 - The gate before each commit and push: `node scripts/check.mjs` (about 25 s). It runs `npm test`,
   `npm run check`, `cargo test --lib` and `cargo clippy --all-targets -- -D warnings` and prints
   one pass or fail line each, with a failed step's output; the whole output is in
-  `.scratch/check.log`. From WSL it runs them on Windows through `cmd.exe`; `--linux` runs them in
-  the Linux build folder instead. `scripts/pre-push.sh` is the pre-push hook and says how to
-  install it. `npm test` includes `scripts/docs.test.mjs`, which fails on a file name or a
+  `.scratch/check.log`. From WSL, `--windows` (or a Windows npm install) runs them on Windows;
+  `--linux` in the Linux build folder. `scripts/pre-push.sh` is the pre-push hook, with its install
+  line. `npm test` includes `scripts/docs.test.mjs`, which fails on a file name or a
   decision record in this file, `README.md`, `CONTRIBUTING.md` or `docs/` that does not resolve, and once this file passes its size budget (`AGENTS_MD_BUDGET` there); `scripts/budgets.test.mjs` caps the other docs and the source files.
 - By hand: `node scripts/dev.mjs run [data folder]` (Windows) starts the dev app with DevTools on
   9222; `scripts/smoke.mjs` fails on an error, `scripts/devtools-shot.mjs` takes a screenshot. A

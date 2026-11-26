@@ -6,7 +6,7 @@
 # 1. It stops when WSL git sees uncommitted changes in the app's folder. A package named after a
 #    commit must hold that commit only. Windows git is
 #    not asked: it sees line-ending and file-mode differences in files that are clean.
-# 2. It runs check.mjs (on Windows, and with --linux for the AppImage).
+# 2. It runs check.mjs (with --windows for the zip, --linux for the AppImage).
 # 3. It runs `npm run package` on Windows through cmd.exe, then `linux.sh package`.
 # 4. It checks again that HEAD did not move and the app stayed clean while it built, and moves the
 #    older builds in release/ to release/archive/.
@@ -36,7 +36,7 @@ build=$(( $(git rev-list --count HEAD) + $(sed -n 's/^const EARLIER_BUILDS: u32 
 echo "release: build $build, commit $(git rev-parse --short=12 HEAD)"
 
 for t in "${targets[@]}"; do
-  if [ "$t" = windows ]; then node scripts/check.mjs; else node scripts/check.mjs --linux; fi
+  if [ "$t" = windows ]; then node scripts/check.mjs --windows; else node scripts/check.mjs --linux; fi
 done
 
 for t in "${targets[@]}"; do

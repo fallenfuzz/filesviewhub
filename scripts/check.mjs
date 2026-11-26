@@ -1,12 +1,13 @@
 // The gate before each commit and push: the UI tests, the type check, the Rust tests and clippy,
 // with one pass or fail line for each and exit code 1 if any failed.
-//   node scripts/check.mjs           on Windows, macOS or Linux: runs them here
-//   node scripts/check.mjs           from WSL: runs them on Windows, through cmd.exe
-//   node scripts/check.mjs --linux   from WSL: runs them in the Linux build folder (linux.sh)
+//   node scripts/check.mjs             runs them here, on Windows, macOS, Linux or WSL
+//   node scripts/check.mjs --windows   from WSL: runs them on Windows, through cmd.exe; the default
+//                                      from WSL when Windows npm installed node_modules (.cmd files)
+//   node scripts/check.mjs --linux     from WSL: runs them in the Linux build folder (linux.sh)
 // The output of a step is shown only when the step fails; .scratch/check.log keeps all of it. The slow checks (#[ignore] Rust tests,
 // the speed checks of big-folders.sh and stalls.mjs) are not part of it.
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,8 +15,15 @@ const app = join(dirname(fileURLToPath(import.meta.url)), '..');
 const linux = process.argv.includes('--linux');
 const wsl = process.platform === 'linux' && existsSync('/proc/version')
   && /microsoft/i.test(readFileSync('/proc/version', 'utf8'));
+// A checkout on a Windows drive whose packages Windows npm installed cannot run them in WSL.
+const winBuilt = () => existsSync(join(app, 'node_modules', '.bin'))
+  && readdirSync(join(app, 'node_modules', '.bin')).some((f) => f.endsWith('.cmd'));
+if (process.argv.includes('--windows') && !wsl) {
+  console.log('--windows runs the gate on Windows from WSL only');
+  process.exit(2);
+}
 
-if (wsl && !linux) {
+if (wsl && !linux && (process.argv.includes('--windows') || winBuilt())) {
   // Node, npm and cargo of Windows, run from this folder as Windows sees it.
   const win = spawnSync('wslpath', ['-w', app], { encoding: 'utf8' }).stdout.trim();
   const r = spawnSync('/mnt/c/Windows/System32/cmd.exe',
