@@ -1,0 +1,1 @@
+Every build and check uses the Rust in `rust-toolchain.toml` (1.100.0), CI too, so a new stable's clippy lints never fail the gate by themselves; `scripts/updates.mjs` says when a newer stable is out.

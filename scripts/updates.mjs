@@ -149,7 +149,12 @@ for (const [, pkg, ver] of msysPins) {
 
 if (!only) {
 head('Toolchains');
-console.log(`  ${sh('rustup check', tauri).stdout.trim().split('\n').join('\n  ')}`);
+const rustup = sh('rustup check', tauri).stdout.trim();
+console.log(`  ${rustup.split('\n').join('\n  ')}`);
+// The pin in rust-toolchain.toml against the newest stable rustup knows of.
+const pin = readFileSync(join(app, 'rust-toolchain.toml'), 'utf8').match(/^channel = "([^"]+)"/m)?.[1];
+const stable = [...(rustup.split('\n').find((l) => l.startsWith('stable-')) ?? '').matchAll(/\d+\.\d+\.\d+/g)].at(-1)?.[0];
+console.log(`  rust-toolchain.toml pins ${pin}${stable && stable !== pin ? `; stable is ${stable}: move the pin once the gate passes on it` : ''}`);
 const node = process.version;
 const lts = (await json('https://nodejs.org/dist/index.json')).find((r) => r.version.startsWith(node.split('.')[0] + '.'));
 // From WSL, the Windows node that builds the Windows package is asked too.

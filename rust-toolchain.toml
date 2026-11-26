@@ -1,0 +1,5 @@
+# The Rust every build and check uses, so a new stable's clippy lints (run with -D warnings) never
+# fail the gate by themselves. Move it up by hand: `node scripts/updates.mjs` says when a newer one is out.
+[toolchain]
+channel = "1.100.0"
+components = ["clippy"]
