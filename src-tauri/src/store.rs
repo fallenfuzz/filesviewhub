@@ -569,14 +569,15 @@ impl Settings {
                 map.insert(k, v);
             }
         }
-        n + rekey_map(&mut self.folder_kinds, drives) + rekey_map(&mut self.move_to, drives)
+        // The value types are named: on macOS another crate's IntoIterator impl sends inference in circles.
+        n + rekey_map::<_, FolderSetting>(&mut self.folder_kinds, drives) + rekey_map::<_, String>(&mut self.move_to, drives)
     }
 }
 
 impl Marks {
     /// Rewrites the Marks, Ticks, Review choices and times opened kept by `{serial}:/path` (`rekey`); how many.
     pub fn rekey(&mut self, drives: &[String]) -> usize {
-        rekey_map(&mut self.marks, drives) + rekey_map(&mut self.ticks, drives) + rekey_map(&mut self.review, drives) + rekey_map(&mut self.opened, drives)
+        rekey_map::<_, Mark>(&mut self.marks, drives) + rekey_map::<_, HashMap<String, u64>>(&mut self.ticks, drives) + rekey_map::<_, Choice>(&mut self.review, drives) + rekey_map::<_, u64>(&mut self.opened, drives)
     }
 }
 
