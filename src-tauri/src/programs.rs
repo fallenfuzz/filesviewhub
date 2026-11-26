@@ -260,9 +260,14 @@ fn png_url(png: &[u8]) -> String {
 /// An image file made into a 32 px PNG data URL.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn icon_file(path: &std::path::Path) -> Option<String> {
-    let img = image::open(path).ok()?.thumbnail(32, 32);
+    small_png(image::open(path).ok()?)
+}
+
+/// A picture made into a 32 px PNG data URL.
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
+fn small_png(img: image::DynamicImage) -> Option<String> {
     let mut png = std::io::Cursor::new(Vec::new());
-    img.write_to(&mut png, image::ImageFormat::Png).ok()?;
+    img.thumbnail(32, 32).write_to(&mut png, image::ImageFormat::Png).ok()?;
     Some(png_url(&png.into_inner()))
 }
 
@@ -559,7 +564,7 @@ mod sys {
 mod sys {
     //! Launch Services through `NSWorkspace`: the app that opens a file of the type, and the apps
     //! that can. It asks by file, so it uses one file of each type from the catalog.
-    use super::{same, Program};
+    use super::{same, small_png, Program};
     use objc2_app_kit::NSWorkspace;
     use objc2_foundation::{NSString, NSURL};
 
@@ -606,8 +611,16 @@ mod sys {
             (default, choices)
         }
 
-        pub fn icon(&self, _id: &str, _name: &str) -> Option<String> {
-            None
+        /// An app's icon as Finder shows it, as a 32 px PNG data URL. Launch Services gives it as a
+        /// TIFF holding every size.
+        pub fn icon(&self, id: &str, _name: &str) -> Option<String> {
+            if !std::path::Path::new(id).exists() {
+                return None;
+            }
+            objc2::rc::autoreleasepool(|_| {
+                let tiff = NSWorkspace::sharedWorkspace().iconForFile(&NSString::from_str(id)).TIFFRepresentation()?.to_vec();
+                small_png(image::load_from_memory_with_format(&tiff, image::ImageFormat::Tiff).ok()?)
+            })
         }
     }
 }
@@ -644,6 +657,14 @@ mod sys {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_mac_app_has_its_icon() {
+        let url = sys::with(|s| s.icon("/System/Applications/Calculator.app", "Calculator")).expect("no icon for Calculator");
+        assert!(url.starts_with("data:image/png;base64,") && url.len() > 200, "{url:.60}");
+        assert!(sys::with(|s| s.icon("/Nowhere/Gone.app", "Gone")).is_none(), "an app that is gone has no icon");
+    }
 
     /// A catalog of one Section: Works holding `items` (paths), and `loose` unlisted files.
     fn catalog(items: &[&str], loose: &[&str]) -> Catalog {

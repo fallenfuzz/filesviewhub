@@ -61,10 +61,6 @@ Apple silicon (M1 and later) and `...-macos-x64.dmg` for an Intel Mac. They need
    read-only copy. Run this once in Terminal, then start it again:
    `xattr -dr com.apple.quarantine /Applications/FilesViewHub` (or the folder you chose).
 
-Not there yet on a Mac:
-
-- **Settings**, **Programs** shows a letter for each program instead of its icon.
-
 ### Update, back up, remove
 
 - To update, unzip the new version over the old folder, or replace `FilesViewHub.exe` and the
