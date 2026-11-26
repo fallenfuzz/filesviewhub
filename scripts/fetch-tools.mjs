@@ -1,16 +1,19 @@
 // Fetches the tools the app bundles for thumbnails (`decisions/2026/10/05/filesviewhub-is-a-tauri-app-shipped-portable.md`) into app/tools/, with a tools.json
 // the app reads for its "What this app does" screen. Every download is pinned by SHA-256.
-// Run from the repo root: `npm run fetch-tools`. Windows and Linux (x86_64) for now; macOS comes next.
-// On Linux ffmpeg and PDFium are bundled and ddjvu is the system's (Arch: djvulibre); it needs patchelf.
+// Run from the repo root: `npm run fetch-tools`. Windows and Linux (x86_64), and macOS (arm64 or x64, the
+// Mac's own). On Linux ffmpeg and PDFium are bundled and ddjvu is the system's (Arch: djvulibre); it needs
+// patchelf. On macOS FFmpeg and ddjvu are built here from their pinned source (Xcode's command line tools;
+// on an Intel Mac also nasm), FFmpeg once per pin and Mac type, kept in tools/.download.
 //
 // A pinned URL can disappear (BtbN keeps dated ffmpeg builds for a few weeks, MSYS2 prunes old
 // packages). The script then stops; pick the newer file, put its URL and hash here, and run again.
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-if (!['win32', 'linux'].includes(process.platform)) { console.error('The tools are fetched on Windows and Linux for now.'); process.exit(1) }
+if (!['win32', 'linux', 'darwin'].includes(process.platform)) { console.error('The tools are fetched on Windows, Linux and macOS.'); process.exit(1) }
+if (process.platform === 'darwin' && !['arm64', 'x64'].includes(process.arch)) { console.error(`No tools for a ${process.arch} Mac.`); process.exit(1) }
 
 const FFMPEG = 'ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-shared-9.0'
 // The FFmpeg commit that build is made from, and the FFmpeg-Builds commit whose scripts made it; the
@@ -126,6 +129,33 @@ const LINUX = {
 const FFMPEG_LIBS = ['libavcodec.so.63', 'libavdevice.so.63', 'libavfilter.so.12', 'libavformat.so.63', 'libavutil.so.61',
   'libswresample.so.7', 'libswscale.so.10']
 
+// macOS: no FFmpeg build to fetch matches the others, so FFmpeg is built from the pinned commit with
+// only its own decoders and the system's zlib, bzip2 and iconv: LGPL 2.1 or later, nothing else
+// inside. DjVuLibre's ddjvu is built from its release, without JPEG and TIFF, which writing PNM needs
+// neither: a DjVu page whose pictures are JPEG shows without them.
+const MAC = {
+  ffmpeg: { url: `https://github.com/FFmpeg/FFmpeg/archive/${FFMPEG_COMMIT}.tar.gz`, file: `ffmpeg-${FFMPEG_COMMIT}.tar.gz`,
+    sha256: '4babda050dcfccb1194dd2a9e75b5e5ec1aa33b3e99d4f6a7106b6337b6b4a0c' },
+  // The same file as the one inside MSYS2's source package the Windows ddjvu is built from.
+  djvulibre: { url: 'https://downloads.sourceforge.net/project/djvu/DjVuLibre/3.5.30/djvulibre-3.5.30.tar.gz', file: 'djvulibre-3.5.30.tar.gz',
+    sha256: 'ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644' },
+  pdfium: {
+    arm64: { url: 'https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8165/pdfium-mac-arm64.tgz', file: 'pdfium-mac-arm64.tgz',
+      sha256: '112e74d717f3e0310273b70f3c8780e8a61ff11b34834124465c8305c841d350' },
+    x64: { url: 'https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8165/pdfium-mac-x64.tgz', file: 'pdfium-mac-x64.tgz',
+      sha256: '07285915b564e46a432a9909dbc1f15892885ca6489e3faeefc70dee77ed371a' },
+  },
+}
+// The oldest macOS the app runs on (src-tauri/tauri.macos.conf.json); the tools are built for it too.
+const MIN_MACOS = '13.0'
+const macFlags = `-O2 -mmacosx-version-min=${MIN_MACOS}`
+const FFMPEG_CONFIGURE = ['--disable-autodetect', '--enable-pthreads', '--enable-zlib', '--enable-bzlib', '--enable-iconv', '--disable-network', '--disable-doc',
+  '--disable-ffplay', '--disable-debug', '--enable-static', '--disable-shared', `--extra-cflags=-mmacosx-version-min=${MIN_MACOS}`,
+  `--extra-ldflags=-mmacosx-version-min=${MIN_MACOS}`]
+const DJVU_CONFIGURE = ['--disable-shared', '--enable-static', '--without-jpeg', '--without-tiff', '--disable-xmltools', '--disable-desktopfiles']
+const jobs = String(Math.max(2, (await import('node:os')).availableParallelism()))
+const run = (cmd, args, cwd, env = {}) => execFileSync(cmd, args, { cwd, stdio: 'inherit', env: { ...process.env, ...env } })
+
 const parts = JSON.parse(readFileSync(join('scripts', 'ffmpeg-licences.json'), 'utf8'))
 if (parts.builds !== BUILDS_COMMIT) throw new Error(`scripts/ffmpeg-licences.json is for FFmpeg-Builds ${parts.builds}; run scripts/ffmpeg-licences.mjs ${BUILDS_COMMIT}`)
 // Where each tool's exact source is. FFmpeg's build links in other libraries; their licences and
@@ -180,6 +210,80 @@ if (process.platform === 'linux') {
   // libraries), and tools/source/ is left for package.mjs to fill.
   execFileSync(process.execPath, [join('scripts', 'notices.mjs')], { stdio: 'inherit' })
   mkdirSync(join(TOOLS, 'source'), { recursive: true })
+  console.log(`\ntools ready in ${TOOLS}/`)
+  process.exit(0)
+}
+
+if (process.platform === 'darwin') {
+  const arch = process.arch
+  if (arch === 'x64') try { execFileSync('nasm', ['-v']) } catch { console.error('FFmpeg needs nasm on an Intel Mac: brew install nasm'); process.exit(1) }
+  // FFmpeg, built once per pin, configure options and Mac type; a build takes about 10 minutes.
+  const recipe = createHash('sha256').update(JSON.stringify([FFMPEG_COMMIT, FFMPEG_CONFIGURE])).digest('hex').slice(0, 12)
+  const built = join(CACHE, `ffmpeg-built-${recipe}-${arch}`)
+  if (!existsSync(join(built, 'ffprobe'))) {
+    rmSync(built, { recursive: true, force: true })
+    unpack(await get(MAC.ffmpeg), join(WORK, 'ffmpeg'))
+    const src = join(WORK, 'ffmpeg', `FFmpeg-${FFMPEG_COMMIT}`)
+    run('./configure', FFMPEG_CONFIGURE, src)
+    run('make', [`-j${jobs}`, 'ffmpeg', 'ffprobe'], src)
+    mkdirSync(built, { recursive: true })
+    for (const f of ['LICENSE.md', 'COPYING.LGPLv2.1']) copyFileSync(join(src, f), join(built, f))
+    for (const f of ['ffmpeg', 'ffprobe']) copyFileSync(join(src, f), join(built, f))
+  }
+  copy(built, ['ffmpeg', 'ffprobe', 'LICENSE.md', 'COPYING.LGPLv2.1'], join(TOOLS, 'ffmpeg'))
+  for (const f of ['ffmpeg', 'ffprobe']) chmodSync(join(TOOLS, 'ffmpeg', f), 0o755)
+  writeFileSync(join(TOOLS, 'ffmpeg', 'BUILD.txt'), `ffmpeg and ffprobe are built by FilesViewHub's tools script (scripts/fetch-tools.mjs) from
+FFmpeg's source at commit ${FFMPEG_COMMIT}
+(${MAC.ffmpeg.url}), unchanged, for a ${arch} Mac, with:
+
+./configure ${FFMPEG_CONFIGURE.join(' ')}
+make ffmpeg ffprobe
+
+Nothing else is built into them; they use macOS's own zlib, bzip2 and iconv.
+`)
+
+  unpack(await get(MAC.djvulibre), join(WORK, 'djvu'))
+  const dj = join(WORK, 'djvu', 'djvulibre-3.5.30')
+  run('./configure', DJVU_CONFIGURE, dj, { CFLAGS: macFlags, CXXFLAGS: macFlags, LDFLAGS: `-mmacosx-version-min=${MIN_MACOS}` })
+  run('make', [`-j${jobs}`, '-C', 'libdjvu'], dj)
+  run('make', [`-j${jobs}`, '-C', 'tools', 'ddjvu'], dj)
+  copy(join(dj, 'tools'), ['ddjvu'], join(TOOLS, 'djvulibre'))
+  for (const f of ['COPYING', 'COPYRIGHT']) cpSync(join(dj, f), join(TOOLS, 'djvulibre', `${f}.txt`))
+  // GPL 2: the exact source ships next to it, with how it is built.
+  mkdirSync(join(TOOLS, 'djvulibre', 'source'), { recursive: true })
+  copyFileSync(join(CACHE, MAC.djvulibre.file), join(TOOLS, 'djvulibre', 'source', MAC.djvulibre.file))
+  writeFileSync(join(TOOLS, 'djvulibre', 'BUILD.txt'), `ddjvu is built by FilesViewHub's tools script (scripts/fetch-tools.mjs) from DjVuLibre's release
+source/${MAC.djvulibre.file}, unchanged, for a ${arch} Mac, with:
+
+CFLAGS="${macFlags}" CXXFLAGS="${macFlags}" LDFLAGS="-mmacosx-version-min=${MIN_MACOS}" ./configure ${DJVU_CONFIGURE.join(' ')}
+make -C libdjvu
+make -C tools ddjvu
+`)
+
+  unpack(await get(MAC.pdfium[arch]), join(WORK, 'pdfium'))
+  copy(join(WORK, 'pdfium', 'lib'), ['libpdfium.dylib'], join(TOOLS, 'pdfium'))
+  const pdfiumFiles = pdfiumLicences(join(WORK, 'pdfium'), join(TOOLS, 'pdfium'))
+  // A Mac runs only signed code; until the app is signed (issue #3) each tool gets an ad-hoc
+  // signature, which strip and copying can drop.
+  for (const f of ['ffmpeg/ffmpeg', 'ffmpeg/ffprobe', 'djvulibre/ddjvu', 'pdfium/libpdfium.dylib']) execFileSync('codesign', ['--force', '-s', '-', join(TOOLS, f)])
+  const build = readFileSync(join(WORK, 'pdfium', 'VERSION'), 'utf8').match(/BUILD=(\d+)/)[1]
+  const manifest = {
+    v: 1,
+    tools: [
+      { id: 'ffmpeg', name: 'FFmpeg', version: '9.0.2', licence: 'LGPL 2.1 or later', files: ['ffmpeg/ffmpeg', 'ffmpeg/ffprobe'],
+        ships: ['ffmpeg/ffmpeg', 'ffmpeg/ffprobe'], source: `https://github.com/FFmpeg/FFmpeg/tree/${FFMPEG_COMMIT}`, licences: ['ffmpeg/LICENSE.md', 'ffmpeg/COPYING.LGPLv2.1'],
+        sources: [{ what: 'FFmpeg source at the commit this build is made from', url: `https://github.com/FFmpeg/FFmpeg/tree/${FFMPEG_COMMIT}` },
+          { what: 'How it is built', url: 'ffmpeg/BUILD.txt' }] },
+      { id: 'pdfium', name: 'PDFium', version: `chromium/${build}`, licence: 'BSD 3-Clause and Apache 2.0', files: ['pdfium/libpdfium.dylib'],
+        ships: ['pdfium/libpdfium.dylib'], source: PDFIUM_RELEASE, sources: PDFIUM_SOURCES, licences: pdfiumFiles },
+      { id: 'ddjvu', name: 'DjVuLibre ddjvu', version: '3.5.30', licence: 'GPL 2.0 or later', files: ['djvulibre/ddjvu'], ships: ['djvulibre/ddjvu'],
+        source: `tools/djvulibre/source/${MAC.djvulibre.file}`, licences: ['djvulibre/COPYING.txt', 'djvulibre/COPYRIGHT.txt'],
+        sources: [{ what: 'The exact source, in this package', url: `djvulibre/source/${MAC.djvulibre.file}` },
+          { what: 'How it is built', url: 'djvulibre/BUILD.txt' }, { what: 'The same file at DjVuLibre', url: MAC.djvulibre.url }] },
+    ],
+  }
+  writeFileSync(join(TOOLS, 'tools.json'), JSON.stringify(manifest, null, 2) + '\n')
+  rmSync(WORK, { recursive: true, force: true })
   console.log(`\ntools ready in ${TOOLS}/`)
   process.exit(0)
 }

@@ -19,7 +19,7 @@ const TOOLS = 'tools'
 const LICENCES = join('scripts', 'licences')
 const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : undefined }
 const appdir = arg('--appdir')
-const system = appdir || process.platform === 'linux' ? 'linux' : 'windows'
+const system = appdir || process.platform === 'linux' ? 'linux' : process.platform === 'darwin' ? 'macos' : 'windows'
 const https = (u) => /^https:\/\//.test(u)
 const LICENCE = /^(licen[cs]e|copying|copyright|notice|unlicense|patents)([._-].*)?$/i
 const isLicence = (f) => LICENCE.test(f) && !/\.(cfg|py|sh|cmake|in|am|c|h|rs|json|ya?ml|toml)$/i.test(f)
@@ -46,7 +46,7 @@ const KNOWN = [
 const guess = (ids) => [...new Set(ids.flatMap(id => KNOWN.filter(([re]) => re.test(texts[id])).map(([, n]) => n)))].join(', ')
 const template = (name, who) => read(join(LICENCES, name)).replace('{who}', who)
 
-// The tools, as fetch-tools left them; FFmpeg's build links in other libraries.
+// The tools, as fetch-tools left them; FFmpeg's build links in other libraries (none on macOS).
 const manifest = JSON.parse(read(join(TOOLS, 'tools.json')))
 const bundled = manifest.tools.filter(t => !t.system)
 const item = (t) => ({ name: t.name, version: t.version, licence: t.licence, sources: t.sources ?? [{ what: 'Source', url: t.source }],
@@ -101,6 +101,8 @@ const names = new Set(inFfmpeg.map(p => norm(p.name)))
 const builtWith = [...conf.matchAll(/--enable-([\w-]+)/g)].map(m => norm(m[1]))
 const unknown = builtWith.filter(f => !names.has(ALIAS[f] ?? f) && !names.has(f.replace(/^lib/, '')) && !(SYSTEM.has(f) && [...names].some(n => n.includes(f))))
   .filter(f => !['version3', 'shared', 'pthreads', 'schannel', 'xlib', 'cudallvm'].includes(f))
+  // The macOS FFmpeg is built by fetch-tools with only these, the system's own (`FFMPEG_CONFIGURE`).
+  .filter(f => !(system === 'macos' && ['static', 'zlib', 'bzlib', 'iconv'].includes(f)))
 if (unknown.length) throw new Error(`FFmpeg was built with ${unknown.join(', ')}, which no part in ffmpeg-licences.json names; add it to ALIAS in notices.mjs`)
 
 // Rust: every crate the app is built from for this system, but not those used only by tests.
@@ -250,7 +252,7 @@ const groups = [
     sources: [{ what: 'The exact source, in this package', url: `source/${appSource[0]}` }], texts: [{ file: 'LICENSE', text: keep(read('LICENSE')) }] }] }] : []),
   { id: 'tools', items: tools },
   ...(msys2.length ? [{ id: 'msys2', items: msys2 }] : []),
-  { id: 'ffmpeg', items: inFfmpeg, source: parts.builds },
+  ...(inFfmpeg.length ? [{ id: 'ffmpeg', items: inFfmpeg, source: parts.builds }] : []),
   { id: 'rust', items: rust },
   { id: 'web', items: web },
   ...(linux.length ? [{ id: 'linux', items: linux }] : []),
