@@ -316,7 +316,7 @@ fn medium(c: Class) -> Option<&'static str> {
 const FORMAT_DIRS: &[&str] = &["pdf", "djvu", "epub", "fb2", "mobi", "azw3", "kfx", "doc", "docx", "txt", "rtf", "chm", "cbz", "cbr"];
 /// The format a book opens in first.
 const PRIORITY: &[&str] = &["pdf", "epub", "mobi", "azw3", "kfx", "fb2", "djvu", "djv", "chm", "cbz", "cbr", "pptx", "ppt", "ppsx", "pps", "docx", "doc", "odt", "rtf", "txt", "md", "xlsx", "xls"];
-const CAPTIONS: &[&str] = &["srt", "vtt"];
+pub const CAPTIONS: &[&str] = &["srt", "vtt"];
 const CAPTION_DIRS: &[&str] = &["captions", "subtitles", "subs"];
 /// A book's or a talk's attachments: a folder of these beside one Work holds its code files.
 const EXTRA_DIRS: &[&str] = &["code", "files"];

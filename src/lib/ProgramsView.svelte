@@ -25,7 +25,7 @@
   /** A program's place on disk for its hover, as folders show theirs; a Store app has none. */
   const where = (p: Program | null | undefined) => (p && /^([A-Za-z]:\\|\\\\|\/)/.test(p.id) ? p.id : undefined)
   const same = (a: string | undefined, b: string | undefined) => !!a && !!b && a.toLowerCase() === b.toLowerCase()
-  const label = (r: ProgramRow) => (r.runs && !r.yours ? S.runsShown : shown(r)?.name ?? S.noProgram)
+  const label = (r: ProgramRow) => (r.reveals && !r.yours ? S.runsShown : shown(r)?.name ?? S.noProgram)
   const rowsOf = (g: string) => (list?.rows ?? []).filter(r => r.group === g)
   /** The rows a group shows: all, or in folded Other types only those with a choice, so a
    * choice (or a program since removed) is never hidden. */
@@ -41,7 +41,7 @@
     const m = new Map<string, { p: Program | null; runs: boolean; rows: ProgramRow[] }>()
     for (const r of list?.rows ?? []) {
       if (r.group === OTHER && folds() && !others && !r.yours) continue
-      const runs = r.runs && !r.yours, p = runs ? null : shown(r)
+      const runs = r.reveals && !r.yours, p = runs ? null : shown(r)
       const k = runs ? '\u0000runs' : p ? key(p) : '\u0000none'
       if (!m.has(k)) m.set(k, { p, runs, rows: [] })
       m.get(k)!.rows.push(r)
@@ -60,7 +60,7 @@
   // Picking the system's program clears the choice, except for a type the app does not start
   // by itself: there the choice is what lets it open at all.
   const pick = (r: ProgramRow, p: Program) => {
-    if (same(r.default?.id, p.id) && !r.runs) return reset(r)
+    if (same(r.default?.id, p.id) && !r.reveals) return reset(r)
     return run(async () => {
       await api.setOpenWith(r.ext, p.id)
       r.yours = p; r.gone = false
@@ -119,7 +119,7 @@
 
   /** The system's program is a row of the menu, so picking it is how the choice clears; the
    * extra row stays only where it is not listed, or where picking it keeps a choice (runs). */
-  const resetRow = (r: ProgramRow) => !!r.yours && (r.runs || !r.choices.some(p => same(p.id, r.default?.id)))
+  const resetRow = (r: ProgramRow) => !!r.yours && (r.reveals || !r.choices.some(p => same(p.id, r.default?.id)))
   const hue = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)
 </script>
 
@@ -135,7 +135,7 @@
     <!-- svelte-ignore a11y_interactive_supports_focus -->
     <div class="menu" role="menu" aria-label={S.changeProgramFor(r.ext)} tabindex="-1" onkeydown={keys}>
       {#each r.choices as p (p.id)}
-        {@const on = same(shown(r)?.id, p.id) && !(r.runs && !r.yours)}
+        {@const on = same(shown(r)?.id, p.id) && !(r.reveals && !r.yours)}
         <button role="menuitemradio" title={where(p)} aria-checked={on} disabled={busy} onclick={() => pick(r, p)}>
           <span class="tick" aria-hidden="true">{on ? '✓' : ''}</span>{@render icon(p)}<span class="nm">{p.name}</span>
           {#if same(r.default?.id, p.id)}<span class="def">{S.systemDefault}</span>{/if}
@@ -181,7 +181,7 @@
             {#each visible(g) as r (r.ext)}
               <tr>
                 <td>{@render type(r)}</td>
-                <td><span class="prog">{#if !(r.runs && !r.yours)}{@render icon(shown(r))}{/if}<span class:muted={!shown(r) || (r.runs && !r.yours)} title={r.runs && !r.yours ? undefined : where(shown(r))}>{label(r)}</span>{#if r.gone}<span class="gone" title={S.notInstalledWhat}>{S.notInstalled}</span>{:else if r.yours}<span class="yours">{S.yourChoice}</span>{/if}</span></td>
+                <td><span class="prog">{#if !(r.reveals && !r.yours)}{@render icon(shown(r))}{/if}<span class:muted={!shown(r) || (r.reveals && !r.yours)} title={r.reveals && !r.yours ? undefined : where(shown(r))}>{label(r)}</span>{#if r.gone}<span class="gone" title={S.notInstalledWhat}>{S.notInstalled}</span>{:else if r.yours}<span class="yours">{S.yourChoice}</span>{/if}</span></td>
                 <td class="num">{@render files(r)}</td>
                 <td class="act"><button class="btn sm change" aria-haspopup="menu" aria-expanded={menu === r.ext} aria-label={S.changeProgramFor(r.ext)} onclick={e => toggle(r, e)}>{S.changeProgram}</button>{@render changeMenu(r)}</td>
               </tr>

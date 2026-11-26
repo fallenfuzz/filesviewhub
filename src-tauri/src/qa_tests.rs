@@ -569,11 +569,12 @@ fn qa_types_many_fast() {
 // ---------- programs: list ----------
 
 #[test]
-fn qa_list_runs_for_every_runs_type() {
-    let t: Vec<_> = programs::RUNS.iter().map(|e| (e.to_string(), 1, None)).chain([("mp4".to_string(), 1, None), ("txt".into(), 1, None)]).collect();
+fn qa_list_reveals_every_type_not_known() {
+    let known = ["mp4", "txt", "srt", "jpg", "flac"];
+    let t: Vec<_> = programs::RUNS.iter().chain(&["zip", "html", ""]).chain(&known).map(|e| (e.to_string(), 1, None)).collect();
     let r = programs::list(t, &BTreeMap::new());
     for row in &r.rows {
-        assert_eq!(row.runs, programs::RUNS.contains(&row.ext.as_str()), ".{}", row.ext);
+        assert_eq!(row.reveals, !known.contains(&row.ext.as_str()), ".{}", row.ext);
         assert!(!row.gone && row.yours.is_none());
     }
 }

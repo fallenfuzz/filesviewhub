@@ -116,8 +116,9 @@ Apple silicon (M1 and later) and `...-macos-x64.dmg` for an Intel Mac. They need
   with their lengths, captions and handouts, each folder's time and how many you ticked, and
   **Continue** at the top for the first lesson you have not ticked; a folder of pictures or books shows them as a
   grid. Point at a card and the folder button in its picture's corner opens its folder in File
-  Explorer. A program or script (`.exe`, `.bat`, `.js` and the like) is shown in File Explorer,
-  never started.
+  Explorer. A click opens videos, music, pictures, books and documents. Any other file
+  (a program, a script, an archive, a web page, a file with no extension) is shown in File
+  Explorer instead, unless you picked a program for its type.
 - **Settings**, **Programs** lists every type of file in your folders by a plain name and its
   extension, for example "Subtitles (.srt)", and the program it opens in. A type with no program
   says **Not set**. **Change** offers the programs Windows offers for that type, Store apps

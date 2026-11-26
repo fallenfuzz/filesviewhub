@@ -9,7 +9,7 @@
 //! starts Store apps too; an `.exe` the person picked that the system does not offer is started
 //! directly. Programs that run scripts are never offered for a type the app does not start.
 
-use crate::scan::{class_of, Catalog, Class};
+use crate::scan::{class_of, Catalog, Class, CAPTIONS};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 
@@ -24,6 +24,19 @@ const INTERPRETERS: [&str; 25] = ["powershell.exe", "pwsh.exe", "powershell_ise.
 /// opened by a program that runs what it opens. The page offers none; this holds whatever it sends.
 pub fn refused(ext: &str, program: &str) -> bool {
     RUNS.contains(&ext) && interpreter(program)
+}
+
+/// Types the catalog does not list as Works that still open from a click: camera raw photos,
+/// camcorder video, and documents that hold no program.
+pub const OPENS: [&str; 19] = ["cr2", "cr3", "nef", "arw", "dng", "raf", "orf", "rw2", "heif", "avif", "mts", "m2ts", "vob", "csv", "ods", "vsd", "vsdx", "vss", "pub"];
+
+/// Whether a click shows a file of type `ext` in its folder instead of opening it, when the
+/// person picked no program for its type. Only the types the catalog knows (video, audio,
+/// pictures, books, captions) and `OPENS` open directly, and of those not a program or script
+/// type (`RUNS`, `.chm`). Every other type is shown, so a type missing from `RUNS` is shown too,
+/// and so is a file with no type, which macOS and Linux run when it is executable.
+pub fn reveals(ext: &str) -> bool {
+    RUNS.contains(&ext) || (class_of(ext).is_none() && !CAPTIONS.contains(&ext) && !OPENS.contains(&ext))
 }
 
 /// The groups, in the order the list shows them.
@@ -42,8 +55,8 @@ pub struct Row {
     pub group: &'static str,
     /// Files of this type in the catalog (Works and unlisted files).
     pub files: usize,
-    /// A program or script: shown in its folder, never started, unless the person picked a program.
-    pub runs: bool,
+    /// Shown in its folder when clicked, never opened, unless the person picked a program (`reveals`).
+    pub reveals: bool,
     /// The person's choice, if any.
     pub yours: Option<Program>,
     /// The choice is a program no longer on this PC: neither offered by the system nor a file.
@@ -115,8 +128,7 @@ pub fn list(types: Vec<(String, usize, Option<String>)>, open_with: &BTreeMap<St
     sys::with(|sys| {
         for (ext, files, sample) in types {
             let (default, mut choices) = sys.offered(&ext, sample.as_deref());
-            let runs = RUNS.contains(&ext.as_str());
-            if runs {
+            if RUNS.contains(&ext.as_str()) {
                 choices.retain(|p| !interpreter(&p.id));
             }
             let offered = |id: &str| choices.iter().chain(default.iter()).find(|p| sys::same_program(&p.id, id)).cloned();
@@ -130,7 +142,7 @@ pub fn list(types: Vec<(String, usize, Option<String>)>, open_with: &BTreeMap<St
                     out.icons.insert(key.clone(), icon);
                 }
             }
-            out.rows.push(Row { runs, group: group(&ext), ext, files, yours, gone, default, choices });
+            out.rows.push(Row { reveals: reveals(&ext), group: group(&ext), ext, files, yours, gone, default, choices });
         }
     });
     out
@@ -728,9 +740,9 @@ mod tests {
     }
 
     #[test]
-    fn runs_types_are_marked() {
+    fn shown_types_are_marked() {
         let r = list(vec![("ps1".into(), 2, None), ("mp4".into(), 1, None)], &BTreeMap::new());
-        assert!(r.rows[0].runs && !r.rows[1].runs);
+        assert!(r.rows[0].reveals && !r.rows[1].reveals);
     }
 
     #[test]
@@ -796,6 +808,17 @@ mod tests {
         assert!(RUNS.contains(&"chm") && RUNS.contains(&"url") && RUNS.contains(&"desktop") && RUNS.contains(&"appimage"));
         assert!(RUNS.contains(&"library-ms") && RUNS.contains(&"search-ms") && RUNS.contains(&"iqy"));
         assert!(["searchconnector-ms", "rdp", "pyz", "msix", "appinstaller", "wsb", "webloc"].iter().all(|e| RUNS.contains(e)));
+    }
+
+    #[test]
+    fn only_known_types_open_from_a_click() {
+        for e in ["mp4", "flac", "jpg", "pdf", "srt", "cr3", "mts", "csv"] {
+            assert!(!reveals(e), ".{e} opens");
+        }
+        for e in ["", "zip", "html", "xml", "unknownthing", "exe", "chm", "desktop"] {
+            assert!(reveals(e), ".{e} is shown in its folder");
+        }
+        assert!(OPENS.iter().all(|e| class_of(e).is_none() && !RUNS.contains(e)), "OPENS holds no Work type and no program type");
     }
 
     /// What this PC offers for common types: `cargo test --lib programs::tests::live -- --ignored --nocapture`.

@@ -1681,10 +1681,10 @@ async fn open(app: AppHandle, state: State<'_, AppState>, path: String, download
     let ext = type_of(&path);
     // One that runs what it opens is never taken for a program or script type (`programs::refused`).
     let program = state.settings.lock().unwrap().open_with.get(&ext).cloned().filter(|p| !programs::refused(&ext, p));
-    // A program or script is shown in its folder, never started from a click on its name,
-    // unless the person picked a program for its type (an editor for .js, say).
-    if program.is_none() && programs::RUNS.contains(&ext.as_str()) {
-        log::info!("show {path} (a program or script is not started)");
+    // Only a type the catalog knows opens from a click on its name; any other is shown in its
+    // folder, unless the person picked a program for its type (an editor for .js, say).
+    if program.is_none() && programs::reveals(&ext) {
+        log::info!("show {path} (only known types are opened)");
         if let Some(why) = unshowable(&path) {
             return Err(why);
         }

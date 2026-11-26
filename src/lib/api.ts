@@ -192,7 +192,7 @@ export type ProgramsView = 'table' | 'programs'
 export interface LogEntry { date: string; time: string; utc: boolean; level: string; topic: string; parts: { text: string; path: boolean }[] }
 /** A program, by what `open_with` stores (programs.rs). An empty id: one the system names but offers no handler for. */
 export interface Program { id: string; name: string }
-export interface ProgramRow { ext: string; group: string; files: number; runs: boolean; yours: Program | null; gone: boolean; default: Program | null; choices: Program[] }
+export interface ProgramRow { ext: string; group: string; files: number; reveals: boolean; yours: Program | null; gone: boolean; default: Program | null; choices: Program[] }
 /** The rows, and the icons as data URLs by program id (or name, for a program with no id). */
 export interface ProgramList { rows: ProgramRow[]; icons: Record<string, string>; listed: boolean }
 export interface Picked { checked: string[]; unchecked: string[] }

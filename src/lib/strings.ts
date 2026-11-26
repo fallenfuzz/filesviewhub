@@ -545,7 +545,7 @@ export const S = {
   notInstalled: 'Not installed',
   notInstalledWhat: 'This program is not on this PC any more. Files of this type will not open until you choose another.',
   noProgram: 'Not set',
-  runsShown: 'Shown in its folder, not started',
+  runsShown: 'Shown in its folder',
   noFilesNow: 'No files now',
   nFiles: (n: number) => (n === 1 ? '1 file' : `${n.toLocaleString('en')} files`),
   otherTypes: (n: number, open: boolean) => `${open ? 'Hide' : 'Show'} ${n === 1 ? '1 other type' : `${n.toLocaleString('en')} other types`}`,

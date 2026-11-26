@@ -1,0 +1,1 @@
+A click opens only videos, music, pictures, books, captions, camera raw photos and a few plain documents. Any other file, a file with no extension among them, is shown in its folder unless you picked a program for its type, so a program of a type the app does not list can never start from a click.
