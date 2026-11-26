@@ -2776,7 +2776,8 @@ mod tests {
     #[test]
     #[cfg(windows)]
     fn a_name_ending_in_a_dot_opens_its_own_file() {
-        let d = temp("dot");
+        // The long form of the temp folder: TEMP may hold a short name (RUNNER~1), which the app resolves.
+        let d = PathBuf::from(std::fs::canonicalize(temp("dot")).unwrap().to_string_lossy().trim_start_matches(r"\\?\").to_string());
         let v = |p: PathBuf| PathBuf::from(format!(r"\\?\{}", p.display()));
         let (dotted, plain, spaced) = (d.join("Books."), d.join("Books"), d.join("Notes "));
         for f in [&dotted, &plain, &spaced] {
