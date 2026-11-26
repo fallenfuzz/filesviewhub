@@ -3,6 +3,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 // Each sort stays under 1 s on a person's PC; CI runners are slower, so three times that there.
+// A busy or slow machine gets more: three times a plain sort of the same names timed on it, so the
+// test still fails when a sort stops growing with n log n.
 const LIMIT = process.env.CI ? 3000 : 1000
 import { fileURLToPath } from 'node:url'
 import { runnerImport } from 'vite'
@@ -74,10 +76,14 @@ test('150,000 Works sort in under 1 s each way', () => {
   const l = Array.from({ length: 150000 }, (_, i) => work(`Курс ${(i * 7919) % 150000} - Глава ${i % 37} The Art of ${i % 101}`, (i * 104729) % 150000, [`p${i}`]))
   const d = Object.fromEntries(l.map((w, i) => [w.items[0].path, i % 3 ? { s: (i * 31) % 9000 } : { p: i % 700 }]))
   const opened = w => w.added % 3 ? w.added : 0
+  const natural = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare
+  const t0 = performance.now()
+  l.map(w => w.title).sort(natural)
+  const limit = Math.max(LIMIT, 3 * (performance.now() - t0))
   for (const by of ['name', 'added', 'length', 'opened']) for (const down of [false, true]) {
     const t = performance.now()
     s.sortWorks(l, { by, down }, id, d, opened)
     const ms = performance.now() - t
-    assert.ok(ms < LIMIT, `${by} ${down ? 'down' : 'up'} took ${Math.round(ms)} ms`)
+    assert.ok(ms < limit, `${by} ${down ? 'down' : 'up'} took ${Math.round(ms)} ms, over ${Math.round(limit)}`)
   }
 })
