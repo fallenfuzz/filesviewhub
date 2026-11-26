@@ -140,9 +140,10 @@ const MAC = {
   djvulibre: { url: 'https://downloads.sourceforge.net/project/djvu/DjVuLibre/3.5.30/djvulibre-3.5.30.tar.gz', file: 'djvulibre-3.5.30.tar.gz',
     sha256: 'ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644' },
   // dav1d, the AV1 decoder built into FFmpeg, and what builds it: meson, ninja and pkgconf (FFmpeg's
-  // configure finds dav1d with pkg-config). Each pin is the one Homebrew's formula checks.
-  dav1d: { url: 'https://code.videolan.org/videolan/dav1d/-/archive/1.5.5/dav1d-1.5.5.tar.bz2', file: 'dav1d-1.5.5.tar.bz2',
-    sha256: 'afc5378daba30eafd11d7b4f0ec863270d7b175f38393a2e1e0ff76f3a45c8b9' },
+  // configure finds dav1d with pkg-config). The dav1d pin is the release's own .sha256 file; the
+  // others are the ones Homebrew's formulas check.
+  dav1d: { url: 'https://downloads.videolan.org/pub/videolan/dav1d/1.5.5/dav1d-1.5.5.tar.xz', file: 'dav1d-1.5.5.tar.xz',
+    sha256: 'ca96b1d0ba3f01f55de7231d775892b64994ba061aaeeaaa4f662a390b3abf9e' },
   meson: { url: 'https://github.com/mesonbuild/meson/releases/download/1.12.1/meson-1.12.1.tar.gz', file: 'meson-1.12.1.tar.gz',
     sha256: 'ab0a6ca09f8ef70c564c8241fb5a23957886a0b53fb58412b5e07eaf07dba743' },
   ninja: { url: 'https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz', file: 'ninja-1.13.2.tar.gz',
