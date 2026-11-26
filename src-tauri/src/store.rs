@@ -515,9 +515,9 @@ pub fn rekey(key: &str, drives: &[String]) -> Option<String> {
 pub fn rekey_map<M, V>(map: &mut M, drives: &[String]) -> usize
 where
     M: Default + IntoIterator<Item = (String, V)> + Extend<(String, V)>,
-    for<'a> &'a M: IntoIterator<Item = (&'a String, &'a V)>,
 {
-    if drives.is_empty() || !(&*map).into_iter().any(|(k, _)| rekey(k, drives).is_some()) {
+    // No bound on `&M`: on macOS another crate's IntoIterator impl sends inference in circles there.
+    if drives.is_empty() {
         return 0;
     }
     let mut new: Vec<(String, V)> = vec![];
@@ -569,15 +569,14 @@ impl Settings {
                 map.insert(k, v);
             }
         }
-        // The value types are named: on macOS another crate's IntoIterator impl sends inference in circles.
-        n + rekey_map::<_, FolderSetting>(&mut self.folder_kinds, drives) + rekey_map::<_, String>(&mut self.move_to, drives)
+        n + rekey_map(&mut self.folder_kinds, drives) + rekey_map(&mut self.move_to, drives)
     }
 }
 
 impl Marks {
     /// Rewrites the Marks, Ticks, Review choices and times opened kept by `{serial}:/path` (`rekey`); how many.
     pub fn rekey(&mut self, drives: &[String]) -> usize {
-        rekey_map::<_, Mark>(&mut self.marks, drives) + rekey_map::<_, HashMap<String, u64>>(&mut self.ticks, drives) + rekey_map::<_, Choice>(&mut self.review, drives) + rekey_map::<_, u64>(&mut self.opened, drives)
+        rekey_map(&mut self.marks, drives) + rekey_map(&mut self.ticks, drives) + rekey_map(&mut self.review, drives) + rekey_map(&mut self.opened, drives)
     }
 }
 
