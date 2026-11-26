@@ -1,0 +1,1 @@
+What this app does and the README say that the window's web view has every web address blocked on Windows only. On macOS and Linux the window is WebKit, which the app cannot block the same way, and they say so.

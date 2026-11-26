@@ -1,0 +1,1 @@
+FilesViewHub runs on macOS 13 or later, from a disk image for Apple silicon or one for Intel Macs, each holding a FilesViewHub folder to drag out. Its tools are built from source for the Mac, so videos (AV1 too), PDFs and DjVu books get thumbnails, and Settings, Programs shows each app's own icon. It is not signed yet: the README says how to open it the first time.

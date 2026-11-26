@@ -1,0 +1,1 @@
+`gh workflow run release.yml` makes every package, the macOS disk images too, as the run's artifacts for 7 days, with no release. The release checks FFmpeg's source against its pin before it ships it.
