@@ -133,9 +133,9 @@ menus, a command bar. Where it departs from the earlier catalog page on purpose:
   visible change is looked at in the running app.
 - What has a newer version, and which locked crate or package has a security advisory:
   `node scripts/updates.mjs` (npm, Cargo.lock against OSV, the pinned tools, Rust and
-  Node). It changes nothing and exits 1 while an advisory has a fix not yet taken; `--advisories`
-  checks only those, and the pre-push hook runs it as a warning. An advisory whose fix waits on
-  upstream goes in its `WAITING` list with the reason.
+  Node). It exits 1 on an advisory with a fix not taken or a stale pinned tool; `--advisories`
+  checks only those (an unread source fails it), warns in pre-push, stops a release. An
+  advisory whose fix waits on upstream goes in its `WAITING` list with the reason.
 - Live development: `npm run tauri dev`. UI logic tests: `npm test` (`node --test`; each
   `scripts/*.test.mjs` loads its module through Vite's `runnerImport`, which does not compile
   runes, so a module tested this way is a plain `.ts` one). Rust tests: `cargo test --lib` in

@@ -1,0 +1,1 @@
+node scripts/updates.mjs --advisories now also checks the pinned FFmpeg, PDFium and MSYS2 builds and fails when a newer release has been out over 90 days. The release workflow runs it first, so a release stops on a stale tool or an advisory with a fix not taken.

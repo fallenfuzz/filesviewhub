@@ -7,9 +7,9 @@
 cd "$(dirname "$0")/.." || exit 1
 echo 'pre-push: running node scripts/check.mjs'
 node scripts/check.mjs || exit 1
-# Security advisories warn and never stop the push; offline, the check is skipped.
+# Security advisories warn and never stop the push; offline, the check fails and only warns.
 if ! out=$(timeout 60 node scripts/updates.mjs --advisories 2>&1); then
-  printf '%s\n' "$out" | grep -E 'fixed in|advisor|npm audit|vulnerab' | grep -v '\[waiting' | grep -v 'no advisories'
-  echo 'pre-push: WARNING, an advisory has a fix to take (node scripts/updates.mjs); pushing anyway'
+  printf '%s\n' "$out" | grep -E 'fixed in|advisor|npm audit|vulnerab|stale|Error' | grep -v '\[waiting' | grep -v 'no advisories'
+  echo 'pre-push: WARNING, an advisory has a fix to take, a pinned tool is stale or a check could not be made (node scripts/updates.mjs); pushing anyway'
 fi
 exit 0
