@@ -79,7 +79,15 @@ async function get({ url, file, sha256 }) {
   if (existsSync(f) && createHash('sha256').update(readFileSync(f)).digest('hex') !== sha256) rmSync(f)
   if (!existsSync(f)) {
     console.log(`fetching ${url}`)
-    const r = await fetch(url)
+    // A network error or a server's own error is tried three times; any other answer stops.
+    let r
+    for (let i = 1; ; i++) {
+      try { r = await fetch(url); if (r.status < 500 && r.status !== 429) break } catch (e) { if (i === 3) throw e }
+      if (i === 3) break
+      console.log(`  ${r ? `HTTP ${r.status}` : 'no answer'}; trying again in ${5 * i} s`)
+      r = undefined
+      await new Promise(done => setTimeout(done, 5000 * i))
+    }
     if (!r.ok) throw new Error(`${url}: HTTP ${r.status}. The pinned file is gone; pin a newer one in scripts/fetch-tools.mjs.`)
     writeFileSync(f, Buffer.from(await r.arrayBuffer()))
   }
