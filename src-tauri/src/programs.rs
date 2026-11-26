@@ -565,8 +565,8 @@ mod sys {
     //! Launch Services through `NSWorkspace`: the app that opens a file of the type, and the apps
     //! that can. It asks by file, so it uses one file of each type from the catalog.
     use super::{same, small_png, Program};
-    use objc2_app_kit::NSWorkspace;
-    use objc2_foundation::{NSString, NSURL};
+    use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep, NSWorkspace};
+    use objc2_foundation::{NSDictionary, NSString, NSURL};
 
     pub struct Sys;
 
@@ -611,15 +611,19 @@ mod sys {
             (default, choices)
         }
 
-        /// An app's icon as Finder shows it, as a 32 px PNG data URL. Launch Services gives it as a
-        /// TIFF holding every size.
+        /// An app's icon as Finder shows it, as a 32 px PNG data URL. Launch Services gives every
+        /// size; the smallest one of at least 32 px is written as a PNG by AppKit itself.
         pub fn icon(&self, id: &str, _name: &str) -> Option<String> {
             if !std::path::Path::new(id).exists() {
                 return None;
             }
             objc2::rc::autoreleasepool(|_| {
-                let tiff = NSWorkspace::sharedWorkspace().iconForFile(&NSString::from_str(id)).TIFFRepresentation()?.to_vec();
-                small_png(image::load_from_memory_with_format(&tiff, image::ImageFormat::Tiff).ok()?)
+                let tiff = NSWorkspace::sharedWorkspace().iconForFile(&NSString::from_str(id)).TIFFRepresentation()?;
+                let reps: Vec<_> = NSBitmapImageRep::imageRepsWithData(&tiff).iter().filter_map(|r| r.downcast::<NSBitmapImageRep>().ok()).collect();
+                let rep = reps.iter().filter(|r| r.pixelsWide() >= 32).min_by_key(|r| r.pixelsWide()).or_else(|| reps.iter().max_by_key(|r| r.pixelsWide()))?;
+                // SAFETY: an empty dictionary is a valid property list for any file type.
+                let png = unsafe { rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new()) }?.to_vec();
+                small_png(image::load_from_memory_with_format(&png, image::ImageFormat::Png).ok()?)
             })
         }
     }
