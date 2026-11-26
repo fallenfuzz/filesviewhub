@@ -51,8 +51,7 @@ Linux ships as an AppImage.
   (`decisions/2026/11/26/macos-ships-as-a-disk-image-of-the-app-folder.md`); `npm run package` on
   that Mac type after `npm run fetch-tools`; bundle config `src-tauri/macos-package.conf.json`.
 - All are build artifacts; `release/` keeps the newest, older ones go to `release/archive/`.
-- CI: `.github/workflows/check.yml` runs the gate on Windows, Linux and macOS (macOS may fail
-  for now). A pushed `filesviewhub-*` tag makes a draft release of every package, notes from the
+- CI: `.github/workflows/check.yml` runs the gate on Windows, Linux and macOS. A pushed `filesviewhub-*` tag makes a draft release of every package, notes from the
   tag (`.github/workflows/release.yml`); `gh workflow run release.yml` makes them as artifacts only.
 - From WSL, `bash scripts/release.sh` makes both (`windows` or `linux` for one): it stops on
   uncommitted changes, runs `scripts/check.mjs`, then packages on Windows through `cmd.exe` and on
