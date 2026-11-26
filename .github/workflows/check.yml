@@ -1,5 +1,6 @@
 # The gate (scripts/check.mjs: UI tests, type check, Rust tests, clippy) on every pull request and
-# every push to main, on Windows, Linux and macOS.
+# every push to main, on Windows, Linux and macOS. macOS minutes count ten times, so the Mac runs
+# the gate only when Rust, a script or the packages changed.
 name: check
 on:
   pull_request:
@@ -23,34 +24,52 @@ jobs:
         with:
           fetch-depth: 0 # the build number is the commit count
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: Whether this change needs the Mac (its minutes count ten times)
+        id: need
+        shell: bash
+        env:
+          FROM: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "$RUNNER_OS" != macOS ] || [ -z "$FROM" ] || ! git cat-file -e "$FROM^{commit}" 2>/dev/null \
+            || git diff --name-only "$FROM" HEAD | grep -qE '^(src-tauri/|scripts/|package(-lock)?\.json$|\.github/workflows/check\.yml$)'; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          else
+            echo 'No Rust, script or package change in this push: the macOS gate is skipped (the release runs it before each package).'
+            echo run=false >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.need.outputs.run == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
-      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - if: steps.need.outputs.run == 'true'
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: stable
           components: clippy
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - if: steps.need.outputs.run == 'true'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
       - name: Linux packages
-        if: runner.os == 'Linux'
+        if: steps.need.outputs.run == 'true' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils djvulibre-bin
-      - run: npm ci --no-audit --no-fund
+      - if: steps.need.outputs.run == 'true'
+        run: npm ci --no-audit --no-fund
       - name: Tools (Linux bundles them)
-        if: runner.os == 'Linux'
+        if: steps.need.outputs.run == 'true' && runner.os == 'Linux'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: tools
         with:
           path: tools
           key: tools-${{ runner.os }}-${{ hashFiles('scripts/fetch-tools.mjs') }}
-      - if: runner.os == 'Linux' && steps.tools.outputs.cache-hit != 'true'
+      - if: steps.need.outputs.run == 'true' && runner.os == 'Linux' && steps.tools.outputs.cache-hit != 'true'
         run: npm run fetch-tools
-      - run: node scripts/check.mjs
+      - if: steps.need.outputs.run == 'true'
+        run: node scripts/check.mjs
       - name: The whole output
-        if: failure()
+        if: steps.need.outputs.run == 'true' && failure()
         shell: bash
         run: cat .scratch/check.log

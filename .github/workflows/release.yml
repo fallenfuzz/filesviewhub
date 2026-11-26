@@ -4,7 +4,7 @@
 # after the gate passes on that system, and FFmpeg's source with its build scripts. The build runs
 # with a read-only token; only the last job, which runs no project code, can write the release.
 # Run by hand (`gh workflow run release.yml`), it makes the packages as the run's artifacts only,
-# with no release.
+# with no release and no Intel Mac image.
 name: release
 on:
   push:
@@ -32,8 +32,11 @@ jobs:
     # Run by hand there is no release job, and the packages are still made.
     if: ${{ !failure() && !cancelled() }}
     strategy:
+      # One failed package does not stop the others, so a rerun of the failed one is enough.
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04, macos-latest, macos-15-intel]
+        # The Intel Mac (about 30 minutes, which count ten times) only for a tagged release.
+        os: ${{ github.event_name == 'push' && fromJSON('["windows-latest","ubuntu-24.04","macos-latest","macos-15-intel"]') || fromJSON('["windows-latest","ubuntu-24.04","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read

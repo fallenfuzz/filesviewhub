@@ -1,0 +1,1 @@
+CI spends fewer of the account's Actions minutes, where a macOS minute counts ten times: the macOS check runs only when Rust, a script or the packages change, and a hand-run release makes no Intel image. A failed package no longer cancels the others, and the tools script tries a failed download three times.
