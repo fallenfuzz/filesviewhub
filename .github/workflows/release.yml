@@ -1,16 +1,20 @@
 # A pushed tag filesviewhub-<version>-build-<n> makes a GitHub Release: its notes are the annotated
-# tag's message (scripts/release-note.mjs makes it), and it carries the Windows zip and the Linux
-# AppImage, each built by `npm run package` after the gate passes on that system, and FFmpeg's
-# source with its build scripts. The build runs
+# tag's message (scripts/release-note.mjs makes it), and it carries the Windows zip, the Linux
+# AppImage and the macOS disk images (Apple Silicon and Intel), each built by `npm run package`
+# after the gate passes on that system, and FFmpeg's source with its build scripts. The build runs
 # with a read-only token; only the last job, which runs no project code, can write the release.
+# Run by hand (`gh workflow run release.yml`), it makes the packages as the run's artifacts only,
+# with no release.
 name: release
 on:
   push:
     tags: ['filesviewhub-*']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -25,9 +29,11 @@ jobs:
         run: gh release create "$TAG" --verify-tag --notes-from-tag --title "$TAG" --draft
   package:
     needs: release
+    # Run by hand there is no release job, and the packages are still made.
+    if: ${{ !failure() && !cancelled() }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-24.04]
+        os: [windows-latest, ubuntu-24.04, macos-latest, macos-15-intel]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -49,6 +55,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils djvulibre-bin
+      - name: nasm, which FFmpeg's build needs on an Intel Mac
+        if: runner.os == 'macOS' && runner.arch == 'X64'
+        run: brew install nasm
       - run: npm ci --no-audit --no-fund
       - run: npm run fetch-tools
       - run: node scripts/check.mjs
@@ -57,14 +66,15 @@ jobs:
         shell: bash
         run: |
           npm run package
-          echo "file=$(ls release/FilesViewHub-*.zip release/FilesViewHub-*.AppImage 2>/dev/null | head -1)" >> "$GITHUB_OUTPUT"
+          echo "file=$(ls release/FilesViewHub-*.zip release/FilesViewHub-*.AppImage release/FilesViewHub-*.dmg 2>/dev/null | head -1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: package-${{ runner.os }}
+          name: package-${{ runner.os }}-${{ runner.arch }}
           path: ${{ steps.package.outputs.file }}
           if-no-files-found: error
   upload:
     needs: package
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
