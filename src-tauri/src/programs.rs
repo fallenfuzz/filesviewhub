@@ -595,10 +595,10 @@ mod sys {
             let default = ws.URLForApplicationToOpenURL(&url).and_then(|u| program(&u));
             let mut choices: Vec<Program> = vec![];
             for u in ws.URLsForApplicationsToOpenURL(&url).iter() {
-                if let Some(p) = program(&u) {
-                    if !choices.iter().any(|c| same(&c.id, &p.id)) {
-                        choices.push(p);
-                    }
+                if let Some(p) = program(&u)
+                    && !choices.iter().any(|c| same(&c.id, &p.id))
+                {
+                    choices.push(p);
                 }
             }
             choices.sort_by_key(|c| (default.as_ref() != Some(c), c.name.to_lowercase()));
