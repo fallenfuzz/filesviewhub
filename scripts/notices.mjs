@@ -251,7 +251,8 @@ const groups = [
   ...(appSource.length ? [{ id: 'app', items: [{ name: 'FilesViewHub', version: JSON.parse(read(join('src-tauri', 'tauri.conf.json'))).version, licence: 'GPL-3.0-or-later',
     sources: [{ what: 'The exact source, in this package', url: `source/${appSource[0]}` }], texts: [{ file: 'LICENSE', text: keep(read('LICENSE')) }] }] }] : []),
   { id: 'tools', items: tools },
-  ...(msys2.length ? [{ id: 'msys2', items: msys2 }] : []),
+  // On macOS ddjvu's libraries are built into it, not MSYS2 DLLs.
+  ...(msys2.length ? [{ id: system === 'macos' ? 'ddjvu' : 'msys2', items: msys2 }] : []),
   ...(inFfmpeg.length ? [{ id: 'ffmpeg', items: inFfmpeg, source: parts.builds }] : []),
   { id: 'rust', items: rust },
   { id: 'web', items: web },
@@ -266,6 +267,7 @@ const TITLES = {
   app: 'FilesViewHub itself',
   tools: 'Programs in the tools folder',
   msys2: 'Libraries ddjvu uses (MSYS2 packages)',
+  ddjvu: 'Libraries built into ddjvu',
   ffmpeg: `Libraries built into FFmpeg (its build scripts: https://github.com/BtbN/FFmpeg-Builds/tree/${parts.builds})`,
   rust: 'Rust crates built into the app',
   web: 'Parts of the app\'s window (npm packages)',

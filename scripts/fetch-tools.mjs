@@ -132,14 +132,17 @@ const FFMPEG_LIBS = ['libavcodec.so.63', 'libavdevice.so.63', 'libavfilter.so.12
 
 // macOS: no FFmpeg build to fetch matches the others, so FFmpeg is built from the pinned commit with
 // only its own decoders and the system's zlib and bzip2: LGPL 2.1 or later, nothing else
-// inside. DjVuLibre's ddjvu is built from its release, without JPEG and TIFF, which writing PNM needs
-// neither: a DjVu page whose pictures are JPEG shows without them.
+// inside. DjVuLibre's ddjvu is built from its release with the IJG's libjpeg built into it, for the
+// DjVu pages whose pictures are JPEG, and without TIFF, which writing PNM does not need.
 const MAC = {
   ffmpeg: { url: `https://github.com/FFmpeg/FFmpeg/archive/${FFMPEG_COMMIT}.tar.gz`, file: `ffmpeg-${FFMPEG_COMMIT}.tar.gz`,
     sha256: '4babda050dcfccb1194dd2a9e75b5e5ec1aa33b3e99d4f6a7106b6337b6b4a0c' },
   // The same file as the one inside MSYS2's source package the Windows ddjvu is built from.
   djvulibre: { url: 'https://downloads.sourceforge.net/project/djvu/DjVuLibre/3.5.30/djvulibre-3.5.30.tar.gz', file: 'djvulibre-3.5.30.tar.gz',
     sha256: 'ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644' },
+  // The Independent JPEG Group's libjpeg, built into ddjvu.
+  jpeg: { url: 'https://www.ijg.org/files/jpegsrc.v10.tar.gz', file: 'jpegsrc.v10.tar.gz',
+    sha256: '8b9eaa13242690ebd03e1728ab1edf97a81a78ed6e83624d493655f31ac95ab5' },
   // The assembler FFmpeg's x86 code needs on an Intel Mac; only used to build, never shipped.
   nasm: { url: 'https://www.nasm.us/pub/nasm/releasebuilds/3.02/nasm-3.02.tar.xz', file: 'nasm-3.02.tar.xz',
     sha256: '87336eba53b4acfe917424ab5d500d2b0054d9f5148d35c2273ccf2cfb712f0d' },
@@ -156,7 +159,8 @@ const macFlags = `-O2 -mmacosx-version-min=${MIN_MACOS}`
 const FFMPEG_CONFIGURE = ['--disable-autodetect', '--enable-pthreads', '--enable-zlib', '--enable-bzlib', '--disable-network', '--disable-doc',
   '--disable-ffplay', '--disable-debug', '--enable-static', '--disable-shared', `--extra-cflags=-mmacosx-version-min=${MIN_MACOS}`,
   `--extra-ldflags=-mmacosx-version-min=${MIN_MACOS}`]
-const DJVU_CONFIGURE = ['--disable-shared', '--enable-static', '--without-jpeg', '--without-tiff', '--disable-xmltools', '--disable-desktopfiles']
+const JPEG_CONFIGURE = ['--disable-shared', '--enable-static']
+const DJVU_CONFIGURE = ['--disable-shared', '--enable-static', '--without-tiff', '--disable-xmltools', '--disable-desktopfiles']
 const jobs = String(Math.max(2, (await import('node:os')).availableParallelism()))
 const run = (cmd, args, cwd, env = {}) => execFileSync(cmd, args, { cwd, stdio: 'inherit', env: { ...process.env, ...env } })
 
@@ -254,20 +258,32 @@ make ffmpeg ffprobe
 Nothing else is built into them; they use macOS's own zlib and bzip2.
 `)
 
+  const macEnv = { CFLAGS: macFlags, CXXFLAGS: macFlags, LDFLAGS: `-mmacosx-version-min=${MIN_MACOS}` }
+  unpack(await get(MAC.jpeg), join(WORK, 'jpeg'))
+  const jp = join(WORK, 'jpeg', 'jpeg-10'), jpegOut = resolve(WORK, 'jpeg-out')
+  run('./configure', [...JPEG_CONFIGURE, `--prefix=${jpegOut}`], jp, macEnv)
+  run('make', [`-j${jobs}`], jp)
+  run('make', ['install'], jp)
   unpack(await get(MAC.djvulibre), join(WORK, 'djvu'))
   const dj = join(WORK, 'djvu', 'djvulibre-3.5.30')
-  run('./configure', DJVU_CONFIGURE, dj, { CFLAGS: macFlags, CXXFLAGS: macFlags, LDFLAGS: `-mmacosx-version-min=${MIN_MACOS}` })
+  run('./configure', [...DJVU_CONFIGURE, `--with-jpeg=${jpegOut}`], dj, macEnv)
   run('make', [`-j${jobs}`, '-C', 'libdjvu'], dj)
   run('make', [`-j${jobs}`, '-C', 'tools', 'ddjvu'], dj)
   copy(join(dj, 'tools'), ['ddjvu'], join(TOOLS, 'djvulibre'))
   for (const f of ['COPYING', 'COPYRIGHT']) cpSync(join(dj, f), join(TOOLS, 'djvulibre', `${f}.txt`))
-  // GPL 2: the exact source ships next to it, with how it is built.
+  // The IJG's licence is its README, which says the documentation must credit the IJG.
+  cpSync(join(jp, 'README'), join(TOOLS, 'djvulibre', 'libjpeg-README.txt'))
+  // GPL 2: the exact source ships next to it, with how it is built; libjpeg's too, which is in it.
   mkdirSync(join(TOOLS, 'djvulibre', 'source'), { recursive: true })
   copyFileSync(join(CACHE, MAC.djvulibre.file), join(TOOLS, 'djvulibre', 'source', MAC.djvulibre.file))
+  copyFileSync(join(CACHE, MAC.jpeg.file), join(TOOLS, 'djvulibre', 'source', MAC.jpeg.file))
   writeFileSync(join(TOOLS, 'djvulibre', 'BUILD.txt'), `ddjvu is built by FilesViewHub's tools script (scripts/fetch-tools.mjs) from DjVuLibre's release
-source/${MAC.djvulibre.file}, unchanged, for a ${arch} Mac, with:
+source/${MAC.djvulibre.file}, unchanged, for a ${arch} Mac, with the Independent JPEG Group's
+libjpeg from source/${MAC.jpeg.file}, unchanged, built into it. With
+CFLAGS="${macFlags}" CXXFLAGS="${macFlags}" LDFLAGS="-mmacosx-version-min=${MIN_MACOS}":
 
-CFLAGS="${macFlags}" CXXFLAGS="${macFlags}" LDFLAGS="-mmacosx-version-min=${MIN_MACOS}" ./configure ${DJVU_CONFIGURE.join(' ')}
+in jpeg-10: ./configure ${JPEG_CONFIGURE.join(' ')} --prefix=<jpeg>; make; make install
+in djvulibre-3.5.30: ./configure ${DJVU_CONFIGURE.join(' ')} --with-jpeg=<jpeg>
 make -C libdjvu
 make -C tools ddjvu
 `)
@@ -291,7 +307,10 @@ make -C tools ddjvu
       { id: 'ddjvu', name: 'DjVuLibre ddjvu', version: '3.5.30', licence: 'GPL 2.0 or later', files: ['djvulibre/ddjvu'], ships: ['djvulibre/ddjvu'],
         source: `tools/djvulibre/source/${MAC.djvulibre.file}`, licences: ['djvulibre/COPYING.txt', 'djvulibre/COPYRIGHT.txt'],
         sources: [{ what: 'The exact source, in this package', url: `djvulibre/source/${MAC.djvulibre.file}` },
-          { what: 'How it is built', url: 'djvulibre/BUILD.txt' }, { what: 'The same file at DjVuLibre', url: MAC.djvulibre.url }] },
+          { what: 'How it is built', url: 'djvulibre/BUILD.txt' }, { what: 'The same file at DjVuLibre', url: MAC.djvulibre.url }],
+        // Built into ddjvu: this software is based in part on the work of the Independent JPEG Group.
+        packages: [{ name: 'libjpeg (Independent JPEG Group)', version: '10', licence: 'IJG', files: [], licences: ['djvulibre/libjpeg-README.txt'],
+          sources: [{ what: 'The exact source, in this package', url: `djvulibre/source/${MAC.jpeg.file}` }, { what: 'The same file at the IJG', url: MAC.jpeg.url }] }] },
     ],
   }
   writeFileSync(join(TOOLS, 'tools.json'), JSON.stringify(manifest, null, 2) + '\n')

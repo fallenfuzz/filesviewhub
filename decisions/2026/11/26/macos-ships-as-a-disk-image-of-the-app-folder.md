@@ -17,8 +17,8 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
 - FFmpeg built from the pinned commit with only its own decoders and macOS's zlib and bzip2
   is LGPL 2.1 or later with nothing else inside. It decodes every format the other builds
   do except AV1, which needs dav1d. It takes about 10 minutes on a CI runner.
-- `ddjvu -format=pnm` needs neither JPEG nor TIFF, so DjVuLibre builds with no other library.
-  The only loss is the JPEG pictures some DjVu pages hold.
+- `ddjvu -format=pnm` needs no TIFF. It needs JPEG only for the JPEG pictures some DjVu pages
+  hold, and the IJG's libjpeg builds with configure and make, as DjVuLibre does.
 - bblanchon's PDFium has a build for each Mac type.
 
 ## Decision
@@ -28,8 +28,9 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
   its tools and notices inside the app (`Contents/Resources/tools`), and `README.md`,
   `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt` next to it. The person drags the folder out, and
   `StoredData` goes into it, next to the app.
-- `scripts/fetch-tools.mjs` builds FFmpeg (at `FFMPEG_COMMIT`) and ddjvu (DjVuLibre 3.5.30) from
-  source on the Mac and fetches PDFium. DjVuLibre's exact source ships in the app.
+- `scripts/fetch-tools.mjs` builds FFmpeg (at `FFMPEG_COMMIT`) and ddjvu (DjVuLibre 3.5.30, with
+  libjpeg 10 built in) from source on the Mac and fetches PDFium. DjVuLibre's and libjpeg's exact
+  source ships in the app.
 - The app needs macOS 13 or later (CSS subgrid in WKWebView).
 - Until the app is signed with a Developer ID (issue #3), the app and each tool get an ad-hoc
   signature only, with no hardened runtime. The README says how to open it the first time.
