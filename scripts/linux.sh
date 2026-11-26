@@ -15,7 +15,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)            # the app's folder in this checkout
 stage=${FVH_LINUX_STAGE:-$HOME/.cache/fvh-linux}
 app=$stage/app
-export PATH=$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin   # a pkg-config from another package manager can miss the system's webkit2gtk
+export PATH=$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin:$PATH   # first, as a pkg-config from another package manager can miss the system's webkit2gtk
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$HOME/.cache/fvh-linux-target}
 # The build folder has no .git: build.rs takes the build number from here, package.mjs the checkout.
 export FVH_APP=$here
