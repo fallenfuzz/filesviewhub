@@ -372,8 +372,11 @@ message along with what you did and what you saw.
 
 ## Licences
 
+Copyright (C) 2026 the FilesViewHub contributors.
+
 FilesViewHub is free software: you can share it and change it under the GNU General Public
-License, version 3 or later (`LICENSE.txt`). It comes with no warranty.
+License, version 3 or later (`LICENSE.txt`). It comes with no warranty. The photos in the pictures
+of this help are CC0 (public domain), found through Openverse.
 
 The programs in the `tools` folder and the parts built into the app each have their own licence.
 **Settings**, **Licences** lists every one with its version, its licence texts and where its
