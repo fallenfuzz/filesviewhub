@@ -1,0 +1,39 @@
+name: Something does not work
+description: The app does something wrong, stops, or shows something it should not.
+labels: [bug, needs-triage]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to see it again
+      placeholder: |
+        1. Tick a folder of ...
+        2. Open ...
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Version and build
+      description: Settings shows them, for example "0.0.3 (build 480)".
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Settings, Log, Copy log. Look it over first and remove any folder or file name you do not want to share.
+      render: text

@@ -1,0 +1,22 @@
+# Dependencies, build output, generated Tauri schemas
+/node_modules/
+/dist/
+/src-tauri/target/
+/src-tauri/gen/schemas/
+/release/
+/tools/
+
+# Local test data, screenshots and logs (scripts and tests write here)
+/.scratch/
+
+# Secrets - defensive
+.env
+.env.*
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Python
+__pycache__/

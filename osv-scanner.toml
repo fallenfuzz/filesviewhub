@@ -1,0 +1,6 @@
+# Advisories accepted for now, each with its reason and an expiry; the scanner reports it again after.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+effectiveUntil = 2027-02-23
+reason = "glib 0.18 VariantStrIter is unsound (a NULL dereference, a crash). Linux build only. Nothing calls it: no crate in the build and no app code uses VariantStrIter or Variant::array_iter_str. The fix, glib 0.20, waits on Tauri moving off gtk 0.18. Accepted by the maintainer on 2026-11-25 until Tauri moves; check again at expiry."

@@ -1,0 +1,12 @@
+[
+  { "name": "bug", "color": "d73a4a", "description": "Something does not work" },
+  { "name": "major", "color": "5319e7", "description": "A large improvement the person sees" },
+  { "name": "release", "color": "5319e7", "description": "Release, signing and updates" },
+  { "name": "macos", "color": "1d76db", "description": "macOS build and gaps" },
+  { "name": "linux", "color": "006b75", "description": "Linux build and gaps" },
+  { "name": "needs-triage", "color": "fbca04", "description": "The maintainer has not looked at it yet" },
+  { "name": "needs-info", "color": "d876e3", "description": "Waiting on the reporter" },
+  { "name": "ready-for-agent", "color": "0e8a16", "description": "Fully specified; an agent can build it unattended" },
+  { "name": "ready-for-human", "color": "c5def5", "description": "Needs a person to build or decide" },
+  { "name": "wontfix", "color": "ffffff", "description": "Will not be done; the issue says why" }
+]

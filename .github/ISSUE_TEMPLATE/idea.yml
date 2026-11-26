@@ -1,0 +1,16 @@
+name: An idea
+description: Something the app could do, or do better.
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The task you have, in your own words, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How the app could help
+      description: Optional. A sketch, a screenshot of another program, or a few words.

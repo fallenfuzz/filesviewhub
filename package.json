@@ -1,0 +1,37 @@
+{
+  "name": "filesviewhub",
+  "private": true,
+  "version": "0.0.9",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fallenfuzz/filesviewhub.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "tauri": "tauri",
+    "package": "node scripts/package.mjs",
+    "fetch-tools": "node scripts/fetch-tools.mjs",
+    "test": "node --test \"scripts/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@tauri-apps/cli": "^2.12.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^24.13.3",
+    "marked": "^18.2.1",
+    "svelte": "^5.57.0",
+    "svelte-check": "^4.7.6",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@fontsource-variable/golos-text": "^5.3.0",
+    "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/plugin-opener": "^2.7.0"
+  }
+}

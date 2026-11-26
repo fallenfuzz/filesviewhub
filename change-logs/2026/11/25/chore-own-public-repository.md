@@ -1,0 +1,1 @@
+FilesViewHub has its own repository, with contributor docs, decision records dated instead of numbered, one change-log file per change, and a check run on Windows, macOS and Linux for every pull request.

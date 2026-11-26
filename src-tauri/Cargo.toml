@@ -1,0 +1,48 @@
+[package]
+name = "filesviewhub"
+version = "0.0.9"
+description = "FilesViewHub: a catalog of the folders you check"
+authors = ["FilesViewHub contributors"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/fallenfuzz/filesviewhub"
+edition = "2024"
+rust-version = "1.90"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "filesviewhub_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.12.1", features = [] }
+tauri-plugin-log = "2"
+walkdir = "2.5.0"
+tauri-plugin-opener = "2.7.0"
+tauri-plugin-dialog = "2.8.1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp", "tiff", "pnm"] }
+pdfium-render = "0.9.4"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+roxmltree = "0.21"
+base64 = "0.23"
+ureq = "3"
+kamadak-exif = "0.6"
+sha1_smol = "1"
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+windows = { version = "0.62.2", features = ["Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_System_Com", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
+
+[target."cfg(target_os = \"linux\")".dependencies]
+libc = "0.2"
+
+[target."cfg(target_os = \"macos\")".dependencies]
+objc2 = "0.6.5"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWorkspace"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSURL", "NSString", "NSArray", "NSEnumerator"] }

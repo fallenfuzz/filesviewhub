@@ -1,0 +1,32 @@
+/* Direction A, folder columns made native (prototype/app-ui branch). Light and dark follow Windows. */
+:root {
+  --bg: #FAFBFC; --side: #EEF0F3; --bar: #EEF0F3; --pane: #FCFCFD; --line: #DDE1E6; --hover: #E2E6EA; --field: #fff; --well: #E3E7EB;
+  --ink: #1B1F24; --muted: #5E6772; --soft: #5B646E; --focus: #2F6FDB; --link: #2A62C4; --next: #FFE27A; --next-ink: #4A3B00;
+  --done: #1C7F4E; --done-ink: #fff; --off: #9AA2AB; --danger: #B3261E; --danger-ink: #fff;
+  /* Selected things: a tint of the accent, not a black block. */
+  --sel: color-mix(in srgb, var(--focus) 13%, var(--field)); --sel-line: color-mix(in srgb, var(--focus) 40%, var(--line)); --on-focus: #fff;
+  --text: "Golos Text Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1C1F23; --side: #202429; --bar: #202429; --pane: #1A1D21; --line: #33383F; --hover: #2D3238; --field: #2A2F35; --well: #2A2F35;
+    --ink: #E8EAED; --muted: #9AA3AD; --soft: #B3BBC4; --focus: #7AA7FF; --link: #8DB4FF; --next: #E9C84A; --next-ink: #2B2200;
+    --on-focus: #0B1A33; --done: #3BAA6E; --done-ink: #0B2416; --off: #6B737C; --danger: #F28B82; --danger-ink: #3B0A07;
+  }
+}
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; height: 100%; }
+body { font: 400 14px/1.4 var(--text); color: var(--ink); background: var(--side); overflow: hidden; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.btn { border: 1px solid var(--line); background: var(--field); border-radius: 6px; padding: 5px 12px; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--focus); color: var(--on-focus); border-color: var(--focus); font-weight: 600; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn:not(.primary):disabled:hover { background: var(--field); }
+.muted { color: var(--muted); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 35%, transparent); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
