@@ -14,8 +14,8 @@ and BtbN, where the other FFmpeg builds come from, makes none for macOS.
   Applications would put `StoredData` loose in `/Applications`.
 - A Mac starts an app from a disk image, or one not moved out of Downloads, from a read-only
   place, so the app cannot write `StoredData` there.
-- FFmpeg built from the pinned commit with only its own decoders and macOS's zlib, bzip2 and
-  iconv is LGPL 2.1 or later with nothing else inside. It decodes every format the other builds
+- FFmpeg built from the pinned commit with only its own decoders and macOS's zlib and bzip2
+  is LGPL 2.1 or later with nothing else inside. It decodes every format the other builds
   do except AV1, which needs dav1d. It takes about 10 minutes on a CI runner.
 - `ddjvu -format=pnm` needs neither JPEG nor TIFF, so DjVuLibre builds with no other library.
   The only loss is the JPEG pictures some DjVu pages hold.

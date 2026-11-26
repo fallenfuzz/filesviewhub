@@ -102,7 +102,7 @@ const builtWith = [...conf.matchAll(/--enable-([\w-]+)/g)].map(m => norm(m[1]))
 const unknown = builtWith.filter(f => !names.has(ALIAS[f] ?? f) && !names.has(f.replace(/^lib/, '')) && !(SYSTEM.has(f) && [...names].some(n => n.includes(f))))
   .filter(f => !['version3', 'shared', 'pthreads', 'schannel', 'xlib', 'cudallvm'].includes(f))
   // The macOS FFmpeg is built by fetch-tools with only these, the system's own (`FFMPEG_CONFIGURE`).
-  .filter(f => !(system === 'macos' && ['static', 'zlib', 'bzlib', 'iconv'].includes(f)))
+  .filter(f => !(system === 'macos' && ['static', 'zlib', 'bzlib'].includes(f)))
 if (unknown.length) throw new Error(`FFmpeg was built with ${unknown.join(', ')}, which no part in ffmpeg-licences.json names; add it to ALIAS in notices.mjs`)
 
 // Rust: every crate the app is built from for this system, but not those used only by tests.

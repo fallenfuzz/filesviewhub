@@ -130,7 +130,7 @@ const FFMPEG_LIBS = ['libavcodec.so.63', 'libavdevice.so.63', 'libavfilter.so.12
   'libswresample.so.7', 'libswscale.so.10']
 
 // macOS: no FFmpeg build to fetch matches the others, so FFmpeg is built from the pinned commit with
-// only its own decoders and the system's zlib, bzip2 and iconv: LGPL 2.1 or later, nothing else
+// only its own decoders and the system's zlib and bzip2: LGPL 2.1 or later, nothing else
 // inside. DjVuLibre's ddjvu is built from its release, without JPEG and TIFF, which writing PNM needs
 // neither: a DjVu page whose pictures are JPEG shows without them.
 const MAC = {
@@ -149,7 +149,7 @@ const MAC = {
 // The oldest macOS the app runs on (src-tauri/tauri.macos.conf.json); the tools are built for it too.
 const MIN_MACOS = '13.0'
 const macFlags = `-O2 -mmacosx-version-min=${MIN_MACOS}`
-const FFMPEG_CONFIGURE = ['--disable-autodetect', '--enable-pthreads', '--enable-zlib', '--enable-bzlib', '--enable-iconv', '--disable-network', '--disable-doc',
+const FFMPEG_CONFIGURE = ['--disable-autodetect', '--enable-pthreads', '--enable-zlib', '--enable-bzlib', '--disable-network', '--disable-doc',
   '--disable-ffplay', '--disable-debug', '--enable-static', '--disable-shared', `--extra-cflags=-mmacosx-version-min=${MIN_MACOS}`,
   `--extra-ldflags=-mmacosx-version-min=${MIN_MACOS}`]
 const DJVU_CONFIGURE = ['--disable-shared', '--enable-static', '--without-jpeg', '--without-tiff', '--disable-xmltools', '--disable-desktopfiles']
@@ -239,7 +239,7 @@ FFmpeg's source at commit ${FFMPEG_COMMIT}
 ./configure ${FFMPEG_CONFIGURE.join(' ')}
 make ffmpeg ffprobe
 
-Nothing else is built into them; they use macOS's own zlib, bzip2 and iconv.
+Nothing else is built into them; they use macOS's own zlib and bzip2.
 `)
 
   unpack(await get(MAC.djvulibre), join(WORK, 'djvu'))
