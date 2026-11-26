@@ -1,5 +1,8 @@
 # Licences and notices are made for each package
 
+Its part on the app's own source in the AppImage is superseded on 2026-11-26 by
+`decisions/2026/11/26/the-app-links-to-its-source-on-github.md`: every package links to it on GitHub.
+
 The app's own code is GPL 3.0 or later. Each package also carries parts under other licences. The
 Windows zip has FFmpeg with the libraries its build links in, PDFium, DjVuLibre and its DLLs, the
 Rust crates, the npm packages in the window and the Golos font. The Linux AppImage has FFmpeg,

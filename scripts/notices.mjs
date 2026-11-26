@@ -13,7 +13,7 @@
 import { execFileSync, execSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { basename, dirname, join, relative } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 
 const TOOLS = 'tools'
 const LICENCES = join('scripts', 'licences')
@@ -55,12 +55,31 @@ const tools = bundled.map(item)
 // The MSYS2 packages whose DLLs ddjvu loads, each a part of its own.
 const msys2 = bundled.filter(t => t.id !== 'ffmpeg').flatMap(t => t.packages ?? []).map(item)
 for (const p of [...tools, ...msys2]) if (!p.texts.length) throw new Error(`${p.name} has no licence file in tools.json`)
-// The app's own source, which the AppImage carries since a GPL 2 library (libjbig) is loaded into
-// the app there; package.mjs puts it in tools/source/ before the first notices of a build.
-const appSource = system === 'linux' && existsSync(join(TOOLS, 'source')) ? readdirSync(join(TOOLS, 'source')).filter(f => f.endsWith('.tar.gz')) : []
-if (appSource.length > 1 || (appdir && !appSource.length)) throw new Error('The AppImage needs the app\'s source, one tar.gz, in tools/source/ (package.mjs makes it).')
+// The app's own source: its tag on GitHub when the built commit is a release
+// (filesviewhub-<version>-build-<n>), else that commit. A tag ruleset keeps release tags from
+// being moved or deleted. On Linux a GPL 2 or later library (libjbig) is loaded into the app.
+// The Linux build folder has no .git; scripts/linux.sh names the checkout in FVH_APP.
+const appDir = process.env.FVH_APP ?? '.'
+const appGit = (args) => execFileSync('git', ['-C', appDir, ...args], { encoding: 'utf8' }).trim()
+let appTop
+try { appTop = appGit(['rev-parse', '--show-toplevel']) } catch { appTop = '' }
+if (!appTop || !existsSync(join(appTop, 'src-tauri', 'build.rs'))) throw new Error(`${resolve(appDir)} is not in a git checkout of the app: the notices link to its source at the built commit. Set FVH_APP to the checkout.`)
+const appRepo = read(join('src-tauri', 'Cargo.toml')).match(/^repository = "(https:\/\/github\.com\/[^"]+)"$/m)?.[1]
+if (!appRepo) throw new Error('src-tauri/Cargo.toml has no https://github.com repository.')
+const appVersion = JSON.parse(read(join('src-tauri', 'tauri.conf.json'))).version
+// The build number as src-tauri/build.rs takes it: FVH_BUILD, else the commit count plus the builds before this repository.
+const appBuild = Number(process.env.FVH_BUILD || Number(appGit(['rev-list', '--count', 'HEAD'])) + Number(read(join('src-tauri', 'build.rs')).match(/^const EARLIER_BUILDS: u32 = (\d+);/m)[1]))
+const appTag = `filesviewhub-${appVersion}-build-${appBuild}`
+const appAt = appGit(['tag', '--points-at', 'HEAD']).split('\n').includes(appTag) ? appTag : appGit(['rev-parse', 'HEAD'])
+// A release links to its tag: on GitHub the pushed tag is the release, and scripts/release.sh
+// (FVH_RELEASE=1) needs the tag on origin at HEAD before it builds.
+if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== appTag) throw new Error(`The tag ${process.env.GITHUB_REF_NAME} is not ${appTag}, the version and build of this commit.`)
+if (process.env.FVH_RELEASE === '1') {
+  const remote = appGit(['ls-remote', 'origin', `refs/tags/${appTag}^{}`, `refs/tags/${appTag}`]).split('\n').map(l => l.split('\t')[0])
+  if (appAt !== appTag || !remote.includes(appGit(['rev-parse', 'HEAD']))) throw new Error(`A release needs the tag ${appTag} at HEAD, pushed to origin, before it is built.`)
+}
 // Every file in the tools folder belongs to a part: a program, a library, a licence or a source.
-const listed = new Set(['tools.json', 'notices.json', 'THIRD-PARTY-NOTICES.txt', ...appSource.map(f => `source/${f}`),
+const listed = new Set(['tools.json', 'notices.json', 'THIRD-PARTY-NOTICES.txt',
   ...bundled.flatMap(t => [t, ...(t.packages ?? [])]).flatMap(t => [...(t.files ?? []), ...(t.ships ?? []), ...(t.licences ?? []),
     ...(t.sources ?? []).map(x => x.url).filter(u => !https(u))])])
 const unlisted = readdirSync(TOOLS, { recursive: true, withFileTypes: true }).filter(f => f.isFile())
@@ -249,8 +268,8 @@ if (appdir) {
 
 const version = JSON.parse(read(join('src-tauri', 'tauri.conf.json'))).version
 const groups = [
-  ...(appSource.length ? [{ id: 'app', items: [{ name: 'FilesViewHub', version: JSON.parse(read(join('src-tauri', 'tauri.conf.json'))).version, licence: 'GPL-3.0-or-later',
-    sources: [{ what: 'The exact source, in this package', url: `source/${appSource[0]}` }], texts: [{ file: 'LICENSE', text: keep(read('LICENSE')) }] }] }] : []),
+  { id: 'app', items: [{ name: 'FilesViewHub', version: `${appVersion} build ${appBuild}`, licence: 'GPL-3.0-or-later',
+    sources: [{ what: 'The exact source', url: `${appRepo}/tree/${appAt}` }, { what: 'Repository', url: appRepo }], texts: [{ file: 'LICENSE', text: keep(read('LICENSE')) }] }] },
   { id: 'tools', items: tools },
   // On macOS ddjvu's libraries are built into it, not MSYS2 DLLs.
   ...(msys2.length ? [{ id: system === 'macos' ? 'ddjvu' : 'msys2', items: msys2 }] : []),

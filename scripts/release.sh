@@ -10,8 +10,10 @@
 # 3. It runs `npm run package` on Windows through cmd.exe, then `linux.sh package`.
 # 4. It checks again that HEAD did not move and the app stayed clean while it built, and moves the
 #    older builds in release/ to release/archive/.
-# Tagging stays by hand, as its message is the release note.
+# Tag HEAD and push the tag first, by hand, as its message is the release note: the packages link
+# to the app's source at that tag, and notices.mjs stops a build (FVH_RELEASE=1) without it.
 set -euo pipefail
+export FVH_RELEASE=1
 app=$(cd "$(dirname "$0")/.." && pwd)
 cd "$app"
 grep -qi microsoft /proc/version 2>/dev/null || { echo 'release.sh runs from WSL.'; exit 2; }
@@ -41,7 +43,7 @@ for t in "${targets[@]}"; do
   if [ "$t" = windows ]; then
     win=$(wslpath -w "$app")
     (cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /d /c \
-      "set \"PATH=%USERPROFILE%\\.cargo\\bin;%PATH%\" && cd /d $win && npm run package")
+      "set \"PATH=%USERPROFILE%\\.cargo\\bin;%PATH%\" && set \"FVH_RELEASE=1\" && cd /d $win && npm run package")
   else
     bash scripts/linux.sh package
   fi

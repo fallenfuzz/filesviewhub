@@ -814,7 +814,7 @@ export const S = {
     linux: 'Libraries inside the AppImage',
   } as Record<string, string>,
   groupWhat: {
-    app: 'Its exact source comes inside the AppImage, since a library under the GPL 2 is loaded into the app here.',
+    app: 'Its exact source is on GitHub, at the release or commit this package was built from.',
     tools: 'Each runs as a program of its own, to make thumbnails.',
     msys2: 'Each one is a DLL in the djvulibre folder. jbigkit is under the GPL 2 or later, so its exact source is in the package too.',
     ddjvu: 'Built into ddjvu, with its exact source in the djvulibre folder. This software is based in part on the work of the Independent JPEG Group.',

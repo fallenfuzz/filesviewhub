@@ -203,7 +203,7 @@ function pdfiumLicences(from, to) {
 
 mkdirSync(CACHE, { recursive: true })
 rmSync(WORK, { recursive: true, force: true })
-for (const d of ['ffmpeg', 'pdfium', 'djvulibre', 'tools.json']) rmSync(join(TOOLS, d), { recursive: true, force: true })
+for (const d of ['ffmpeg', 'pdfium', 'djvulibre', 'source', 'tools.json']) rmSync(join(TOOLS, d), { recursive: true, force: true })
 
 if (process.platform === 'linux') {
   const ff = FFMPEG.replace('win64', 'linux64')
@@ -231,11 +231,9 @@ if (process.platform === 'linux') {
   }
   writeFileSync(join(TOOLS, 'tools.json'), JSON.stringify(manifest, null, 2) + '\n')
   rmSync(WORK, { recursive: true, force: true })
-  // tauri.linux.conf.json bundles the notices and the app's source, so a build or a test fails while
-  // they are missing: the notices are made now (each package makes them again, with the AppImage's
-  // libraries), and tools/source/ is left for package.mjs to fill.
+  // tauri.linux.conf.json bundles the notices, so a build or a test fails while they are missing:
+  // they are made now, and each package makes them again, with the AppImage's libraries.
   execFileSync(process.execPath, [join('scripts', 'notices.mjs')], { stdio: 'inherit' })
-  mkdirSync(join(TOOLS, 'source'), { recursive: true })
   console.log(`\ntools ready in ${TOOLS}/`)
   process.exit(0)
 }

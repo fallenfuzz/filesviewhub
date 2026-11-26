@@ -15,6 +15,11 @@ const repo = process.env.FVH_APP ?? '.'
 const git = (args) => execSync(`git -C "${repo}" ${args}`).toString().trim()
 // The build number, as src-tauri/build.rs makes it: the commit count plus the builds before this repository.
 const buildNumber = () => Number(git('rev-list --count HEAD')) + Number(readFileSync('src-tauri/build.rs', 'utf8').match(/^const EARLIER_BUILDS: u32 = (\d+);/m)[1])
+// The notices link to the app's source at the built commit, so that commit must be all a package
+// holds. Windows git sees line-ending and file-mode changes in clean files; release.sh checks there.
+const committed = () => {
+  if (git('status --porcelain -- .')) { console.error('The app has changes not committed; the package links to the source of the commit it is built from. Commit first.'); process.exit(1) }
+}
 if (!existsSync('tools/tools.json')) { console.error('No tools: run `npm run fetch-tools` first.'); process.exit(1) }
 if (process.platform === 'linux') {
   const version = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')).version
@@ -32,15 +37,8 @@ if (process.platform === 'linux') {
     execSync(`node scripts/notices.mjs${existsSync(appdir) && runtime ? ` --appdir "${appdir}" --runtime ${runtime}` : ''}`, { stdio: 'inherit' })
     return readFileSync('tools/notices.json', 'utf8')
   }
-  // A GPL 2 library (libjbig, through libtiff) is loaded into the app in the AppImage, so the app's
-  // own source at the built commit goes inside it: this folder, but its test files.
-  if (git('status --porcelain -- .')) {
-    console.error('The app has changes not committed; the AppImage carries the source of the commit it is built from. Commit first.'); process.exit(1)
-  }
-  const commit = git('rev-parse --short=12 HEAD')
-  rmSync('tools/source', { recursive: true, force: true })
-  mkdirSync('tools/source', { recursive: true })
-  execSync(`git -C "${repo}" archive --format=tar.gz --prefix=filesviewhub-${version}-${commit}/ -o "${resolve('tools/source', `filesviewhub-${version}-${commit}.tar.gz`)}" HEAD -- . ":(exclude)tests"`, { stdio: 'inherit' })
+  // A GPL 2 or later library (libjbig, through libtiff) is loaded into the app in the AppImage.
+  committed()
   let shipped = notices()
   for (let round = 1; ; round++) {
     execSync('npx tauri build --bundles appimage', { stdio: 'inherit' })
@@ -61,7 +59,7 @@ if (process.platform === 'linux') {
   process.exit(0)
 }
 if (process.platform === 'darwin') {
-  rmSync('tools/source', { recursive: true, force: true })
+  committed()
   execSync('node scripts/notices.mjs', { stdio: 'inherit' })
   // Ad-hoc signed only, until the Developer ID (issue #3).
   execSync('npx tauri build --bundles app --config src-tauri/macos-package.conf.json', { stdio: 'inherit' })
@@ -91,8 +89,6 @@ if (process.platform === 'darwin') {
   console.log(`\n${dmg}`)
   process.exit(0)
 }
-// The app's own source ships only in the AppImage (`decisions/2026/10/20/licences-and-notices-made-for-each-package.md`).
-rmSync('tools/source', { recursive: true, force: true })
 execSync('node scripts/notices.mjs', { stdio: 'inherit' })
 execSync('npx tauri build --no-bundle', { stdio: 'inherit' })
 const version = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')).version

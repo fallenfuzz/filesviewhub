@@ -6,7 +6,6 @@
       "../tools/tools.json": "tools/tools.json",
       "../tools/notices.json": "tools/notices.json",
       "../tools/THIRD-PARTY-NOTICES.txt": "tools/THIRD-PARTY-NOTICES.txt",
-      "../tools/source/": "tools/source/",
       "../LICENSE": "LICENSE.txt",
       "../tools/ffmpeg/": "tools/ffmpeg/",
       "../tools/pdfium/": "tools/pdfium/"

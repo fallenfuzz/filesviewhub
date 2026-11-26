@@ -380,5 +380,5 @@ source is. `THIRD-PARTY-NOTICES.txt` holds the same list: in the app folder on W
 Mac, inside the AppImage on Linux. DjVuLibre and jbigkit are under the GPL, so on Windows their
 exact source is in `tools/djvulibre/source`; on a Mac DjVuLibre's is in
 `FilesViewHub.app/Contents/Resources/tools/djvulibre/source`, with that of the libjpeg built into
-it. The Linux AppImage carries FilesViewHub's own source,
-since a library under the GPL is loaded into the app there.
+it. FilesViewHub's own source is on GitHub: Settings, Licences links to the release tag, or the commit,
+that the package was built from.

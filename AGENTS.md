@@ -45,11 +45,11 @@ Linux ships as an AppImage.
   package` on Windows (`npm run fetch-tools` once first).
 - Linux: `release/FilesViewHub-<version>-build-<n>-linux-x86_64.AppImage`, with FFmpeg and PDFium
   inside (ddjvu is the system's), from the same source plus `src-tauri/tauri.linux.conf.json`;
-  `npm run package` on Linux. It carries the app's own source at the built commit, as a GPL 2
-  library it loads asks (`decisions/2026/10/20/licences-and-notices-made-for-each-package.md`).
+  `npm run package` on Linux, committed. Licences links to the app's source at the built commit, as a GPL 2
+  library it loads asks (`decisions/2026/11/26/the-app-links-to-its-source-on-github.md`).
 - macOS: `release/FilesViewHub-<version>-build-<n>-macos-<arm64|x64>.dmg`
   (`decisions/2026/11/26/macos-ships-as-a-disk-image-of-the-app-folder.md`); `npm run package` on
-  that Mac type after `npm run fetch-tools`; bundle config `src-tauri/macos-package.conf.json`.
+  that Mac type after `npm run fetch-tools`, committed; bundle config `src-tauri/macos-package.conf.json`.
 - All are build artifacts; `release/` keeps the newest, older ones go to `release/archive/`.
 - CI: `.github/workflows/check.yml` runs the gate on Windows, Linux and macOS (macOS only for a Rust, script or package change). A pushed `filesviewhub-*` tag makes a draft release of every package, notes from the
   tag (`.github/workflows/release.yml`); `gh workflow run release.yml` makes them, but the Intel image, as artifacts only.
