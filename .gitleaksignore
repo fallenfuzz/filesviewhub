@@ -1,0 +1,5 @@
+# Findings triaged as false positives by a security review; none is a credential.
+# Path-traversal inputs inside the test only_a_picture_the_app_kept_is_set.
+105e20ea9ae58acd0b86e0c0e47a89694f5b2388:src-tauri/src/chosen.rs:generic-api-key:302
+# Item and Tick keys of the made-up fixture the Rust tests write.
+105e20ea9ae58acd0b86e0c0e47a89694f5b2388:scripts/packed.fixture.json:generic-api-key:1
