@@ -97,12 +97,16 @@ const lock = readFileSync(join(tauri, 'Cargo.lock'), 'utf8').split('[[package]]'
 const osv = await json('https://api.osv.dev/v1/querybatch',
   { queries: lock.map((p) => ({ package: { ecosystem: 'crates.io', name: p.name }, version: p.version })) });
 if (osv.results?.length !== lock.length) console.log(`  OSV:${failed(`${osv.results?.length ?? 0} answers for ${lock.length} crates`)}`);
-const ids = [...new Set(osv.results.flatMap((r, i) => (r.vulns ?? []).map((v) => `${lock[i].name}@${lock[i].version}|${v.id}`)))]
-  .filter((k) => k.split('|')[1].startsWith('RUSTSEC'));
-console.log(`  advisories (RustSec, ${lock.length} crates checked): ${ids.length || 'none'}`);
+// Each advisory once: a record with a RUSTSEC id or alias is RustSec's, and the GHSA copy of it
+// is dropped; a GHSA record with no RUSTSEC alias is kept, as RustSec never lists it.
+const found = [...new Set(osv.results.flatMap((r, i) => (r.vulns ?? []).map((v) => `${lock[i].name}@${lock[i].version}|${v.id}`)))];
+const records = new Map();
+for (const k of found) records.set(k, await json(`https://api.osv.dev/v1/vulns/${k.split('|')[1]}`));
+const ids = found.filter((k) => k.split('|')[1].startsWith('RUSTSEC') || !(records.get(k).aliases ?? []).some((a) => a.startsWith('RUSTSEC')));
+console.log(`  advisories (RustSec and GitHub, ${lock.length} crates checked): ${ids.length || 'none'}`);
 for (const k of ids) {
   const [crate, id] = k.split('|');
-  const v = await json(`https://api.osv.dev/v1/vulns/${id}`);
+  const v = records.get(k);
   const fixed = v.affected?.flatMap((a) => a.ranges?.flatMap((r) => r.events.map((e) => e.fixed).filter(Boolean)) ?? []) ?? [];
   if (fixed.length && !waiting(id)) fixable++;
   console.log(`    ${crate} ${id}: ${v.summary}${fixed.length ? ` (fixed in ${fixed.join(', ')})` : ' (no fix: unmaintained or unsound)'}${waiting(id) ? ` [waiting until ${WAITING.get(id).until}: ${WAITING.get(id).why}]` : WAITING.has(id) ? ` [no longer waiting: ${WAITING.get(id).until} has passed]` : ''}`);

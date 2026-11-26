@@ -1,0 +1,1 @@
+node scripts/updates.mjs also lists a Rust crate advisory that only the GitHub Advisory Database has (a GHSA record with no RUSTSEC alias), and such an advisory with a fix now fails the check and stops a release.
