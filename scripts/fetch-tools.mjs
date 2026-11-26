@@ -410,7 +410,9 @@ const packages = DJVU.filter(p => !p.file.includes('-djvulibre-')).map(p => {
     .map(f => relative(TOOLS, join(f.parentPath, f.name)).replaceAll('\\', '/')).sort() : []
   if (!dlls.length || !licences.length) throw new Error(`${p.file}: ${dlls.length ? 'no licence files' : 'no DLL ddjvu uses'}`)
   const source = `${info.pkgbase}-${info.pkgver}.src.tar.zst`
-  return { name, version: info.pkgver, licence: info.license.replace(/^spdx:/, ''), files: dlls, licences,
+  // MSYS2 says GPL-2.0 for jbigkit; libjbig/jbig.c says version 2 or later.
+  const licence = name === 'jbigkit' ? 'GPL-2.0-or-later' : info.license.replace(/^spdx:/, '')
+  return { name, version: info.pkgver, licence, files: dlls, licences,
     sources: name === 'jbigkit'
       ? [{ what: 'The exact source, in this package', url: `djvulibre/source/${JBIG_SOURCE.file}` }, { what: 'The same file at MSYS2', url: JBIG_SOURCE.url }]
       : [{ what: 'MSYS2 source package', url: MSYS.replace('/ucrt64/', '/sources/') + encodeURIComponent(source) }] }
